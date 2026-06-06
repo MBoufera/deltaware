@@ -1,0 +1,100 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/pages/login_page.dart';
+import 'features/admin/presentation/pages/admin_dashboard_page.dart';
+import 'features/admin/presentation/pages/user_management_page.dart';
+import 'features/admin/presentation/pages/role_management_page.dart';
+import 'features/admin/presentation/pages/admin_layout.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Supabase.initialize(
+    url: 'https://dggulctustnlfyadcanx.supabase.co',
+    anonKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
+  );
+  
+  runApp(const MyApp());
+}
+
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+
+final GoRouter _router = GoRouter(
+  navigatorKey: _rootNavigatorKey,
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/dashboard',
+      builder: (context, state) => const DashboardPage(),
+    ),
+    ShellRoute(
+      navigatorKey: _shellNavigatorKey,
+      builder: (context, state, child) {
+        return AdminLayout(child: child);
+      },
+      routes: [
+        GoRoute(
+          path: '/admin-dashboard',
+          builder: (context, state) => const AdminDashboardPage(),
+          routes: [
+            GoRoute(
+              path: 'users',
+              builder: (context, state) => const UserManagementPage(),
+            ),
+            GoRoute(
+              path: 'roles',
+              builder: (context, state) => const RoleManagementPage(),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => AuthBloc(),
+      child: MaterialApp.router(
+        title: 'Deltaware',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF203A43)),
+          useMaterial3: true,
+          fontFamily: 'Inter',
+        ),
+        routerConfig: _router,
+        debugShowCheckedModeBanner: false,
+      ),
+    );
+  }
+}
+
+class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Staff Dashboard'),
+        backgroundColor: const Color(0xFF203A43),
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Text('Welcome to Deltaware Staff Dashboard!'),
+      ),
+    );
+  }
+}
