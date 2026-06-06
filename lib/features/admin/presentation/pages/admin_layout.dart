@@ -93,6 +93,16 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
+                  icon: Icons.document_scanner_outlined,
+                  label: 'Smart Invoice',
+                  isActive: location.startsWith('/admin-dashboard/smart-batch'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/smart-batch');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
                   icon: Icons.people_outline,
                   label: 'Users',
                   isActive: location.startsWith('/admin-dashboard/users'),
