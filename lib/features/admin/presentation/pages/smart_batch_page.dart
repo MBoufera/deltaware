@@ -41,7 +41,6 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   // NOTE: Key hidden for GitHub
   final String _geminiApiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_GEMINI_API_KEY');
-
   Future<void> _scanInvoice() async {
     if (_geminiApiKey == 'YOUR_GEMINI_API_KEY' || _geminiApiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

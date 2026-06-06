@@ -103,6 +103,16 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
+                  icon: Icons.inventory_2_outlined,
+                  label: 'Inventory',
+                  isActive: location.startsWith('/admin-dashboard/products'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/products');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
                   icon: Icons.people_outline,
                   label: 'Users',
                   isActive: location.startsWith('/admin-dashboard/users'),

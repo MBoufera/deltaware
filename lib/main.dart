@@ -9,6 +9,8 @@ import 'features/admin/presentation/pages/user_management_page.dart';
 import 'features/admin/presentation/pages/role_management_page.dart';
 import 'features/admin/presentation/pages/admin_layout.dart';
 import 'features/admin/presentation/pages/smart_batch_page.dart';
+import 'features/admin/presentation/pages/products_page.dart';
+import 'features/admin/presentation/pages/add_product_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +51,16 @@ final GoRouter _router = GoRouter(
             GoRoute(
               path: 'smart-batch',
               builder: (context, state) => const SmartBatchPage(),
+            ),
+            GoRoute(
+              path: 'products',
+              builder: (context, state) => const ProductsPage(),
+              routes: [
+                GoRoute(
+                  path: 'add',
+                  builder: (context, state) => const AddProductPage(),
+                ),
+              ],
             ),
             GoRoute(
               path: 'users',
