@@ -91,7 +91,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Expanded(
                         child: _MetricCard(
                           title: 'dashboard.total_value'.tr(),
-                          value: '\$${totalValue.toStringAsFixed(2)}',
+                          value: '${totalValue.toStringAsFixed(2)} DZD',
                           icon: Icons.account_balance_wallet,
                           color: Colors.green,
                         ),

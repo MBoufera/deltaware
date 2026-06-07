@@ -222,11 +222,11 @@ class _ProductsPageState extends State<ProductsPage> {
                                       ),
                                     ),
                                   ),
-                                  DataCell(Text('\$${(product['purchase_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
-                                  DataCell(Text('\$${(product['wholesale_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                  DataCell(Text('${(product['purchase_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD')),
+                                  DataCell(Text('${(product['wholesale_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD', style: const TextStyle(fontWeight: FontWeight.w500))),
                                   DataCell(
                                     Text(
-                                      '\$${(product['retail_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                                      '${(product['retail_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD',
                                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                                     ),
                                   ),

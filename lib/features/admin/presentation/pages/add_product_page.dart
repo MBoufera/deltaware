@@ -383,7 +383,7 @@ class _PriceCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '\$${price.toStringAsFixed(2)}',
+            '${price.toStringAsFixed(2)} DZD',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
