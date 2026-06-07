@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
@@ -9,35 +11,14 @@ class ProductsPage extends StatefulWidget {
 }
 
 class _ProductsPageState extends State<ProductsPage> {
-  final List<Map<String, dynamic>> _dummyProducts = [
-    {
-      'id': '1',
-      'name': 'Laptop XPS 15',
-      'category': 'Electronics',
-      'stock': 45,
-      'purchasePrice': 1200.0,
-      'wholesalePrice': 1440.0,
-      'retailPrice': 1872.0,
-    },
-    {
-      'id': '2',
-      'name': 'Wireless Mouse',
-      'category': 'Accessories',
-      'stock': 120,
-      'purchasePrice': 15.0,
-      'wholesalePrice': 20.0,
-      'retailPrice': 26.0,
-    },
-    {
-      'id': '3',
-      'name': 'Mechanical Keyboard',
-      'category': 'Accessories',
-      'stock': 85,
-      'purchasePrice': 65.0,
-      'wholesalePrice': 90.0,
-      'retailPrice': 117.0,
-    },
-  ];
+  final _supabase = Supabase.instance.client;
+  late final Stream<List<Map<String, dynamic>>> _productsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsStream = _supabase.from('products').stream(primaryKey: ['id']).order('created_at', ascending: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +35,9 @@ class _ProductsPageState extends State<ProductsPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Product Inventory',
-                      style: TextStyle(
+                    Text(
+                      'products.title'.tr(),
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1A2A32),
@@ -64,7 +45,7 @@ class _ProductsPageState extends State<ProductsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Manage your store products and pricing',
+                      'products.subtitle'.tr(),
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade600,
@@ -77,9 +58,9 @@ class _ProductsPageState extends State<ProductsPage> {
                     context.go('/admin-dashboard/products/add');
                   },
                   icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    'Add Product',
-                    style: TextStyle(
+                  label: Text(
+                    'products.add_product'.tr(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -117,8 +98,8 @@ class _ProductsPageState extends State<ProductsPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search products by name, category, or ID...',
+                      decoration: InputDecoration(
+                        hintText: 'products.search_hint'.tr(),
                         border: InputBorder.none,
                       ),
                       onChanged: (value) {
@@ -151,96 +132,128 @@ class _ProductsPageState extends State<ProductsPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: SingleChildScrollView(
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-                      dataRowMinHeight: 65,
-                      dataRowMaxHeight: 65,
-                      horizontalMargin: 24,
-                      columnSpacing: 32,
-                      columns: const [
-                        DataColumn(label: Text('Product Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Purchase Price', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Wholesale Price', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Retail Price', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                      ],
-                      rows: _dummyProducts.map((product) {
-                        return DataRow(
-                          cells: [
-                            DataCell(
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.inventory_2_outlined, color: Colors.blue.shade700, size: 20),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    product['name'],
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                                  ),
-                                ],
-                              ),
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _productsStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error loading products: ${snapshot.error}'));
+                      }
+                      
+                      final products = snapshot.data ?? [];
+                      if (products.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text('products.no_products'.tr(), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                              ],
                             ),
-                            DataCell(
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  product['category'],
-                                  style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                '${product['stock']}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: product['stock'] > 20 ? Colors.green.shade700 : Colors.orange.shade700,
-                                ),
-                              ),
-                            ),
-                            DataCell(Text('\$${product['purchasePrice'].toStringAsFixed(2)}')),
-                            DataCell(Text('\$${product['wholesalePrice'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w500))),
-                            DataCell(
-                              Text(
-                                '\$${product['retailPrice'].toStringAsFixed(2)}',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
-                              ),
-                            ),
-                            DataCell(
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined, size: 20),
-                                    color: Colors.blue.shade600,
-                                    onPressed: () {},
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 20),
-                                    color: Colors.red.shade400,
-                                    onPressed: () {},
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         );
-                      }).toList(),
-                    ),
+                      }
+
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SingleChildScrollView(
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                            dataRowMinHeight: 65,
+                            dataRowMaxHeight: 65,
+                            horizontalMargin: 24,
+                            columnSpacing: 32,
+                            columns: [
+                              DataColumn(label: Text('products.col_name'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_category'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_stock'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_purchase'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_wholesale'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_retail'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('products.col_actions'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                            rows: products.map((product) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(Icons.inventory_2_outlined, color: Colors.blue.shade700, size: 20),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Text(
+                                          product['name'],
+                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        product['category'] ?? 'products.uncategorized'.tr(),
+                                        style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      '${product['stock'] ?? 0}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: (product['stock'] ?? 0) > 20 ? Colors.green.shade700 : ((product['stock'] ?? 0) == 0 ? Colors.red.shade700 : Colors.orange.shade700),
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(Text('\$${(product['purchase_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                                  DataCell(Text('\$${(product['wholesale_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                  DataCell(
+                                    Text(
+                                      '\$${(product['retail_price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 20),
+                                          color: Colors.blue.shade600,
+                                          onPressed: () {},
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20),
+                                          color: Colors.red.shade400,
+                                          onPressed: () {},
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      );
+                    }
                   ),
                 ),
               ),

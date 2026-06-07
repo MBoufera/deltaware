@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 // Represents a row in the data table
 class InventoryItem {
@@ -39,15 +40,33 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
+  // Rapid Entry Controllers & Focus Nodes
+  final _quickNameController = TextEditingController();
+  final _quickQuantityController = TextEditingController(text: '1');
+  final _quickPriceController = TextEditingController();
+  final _nameFocusNode = FocusNode();
+  final _quantityFocusNode = FocusNode();
+  final _priceFocusNode = FocusNode();
+
   // NOTE: Key hidden for GitHub
-  final String _geminiApiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_GEMINI_API_KEY');
+  final String _geminiApiKey = 'YOUR_GEMINI_API_KEY';
+
+  @override
+  void dispose() {
+    _quickNameController.dispose();
+    _quickQuantityController.dispose();
+    _quickPriceController.dispose();
+    _nameFocusNode.dispose();
+    _quantityFocusNode.dispose();
+    _priceFocusNode.dispose();
+    super.dispose();
+  }
+
   Future<void> _scanInvoice() async {
     if (_geminiApiKey == 'YOUR_GEMINI_API_KEY' || _geminiApiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please provide your Gemini API Key in the code first!',
-          ),
+          content: Text('Please provide your Gemini API Key in the code first!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -121,6 +140,28 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
     }
   }
 
+  void _addRapidItem() {
+    final name = _quickNameController.text.trim();
+    final quantity = int.tryParse(_quickQuantityController.text) ?? 1;
+    final price = double.tryParse(_quickPriceController.text) ?? 0.0;
+
+    if (name.isNotEmpty && price > 0) {
+      setState(() {
+        _items.insert(0, InventoryItem(
+          name: name,
+          quantity: quantity,
+          purchasePrice: price,
+        ));
+      });
+      // Clear inputs except quantity
+      _quickNameController.clear();
+      _quickPriceController.clear();
+      _quickQuantityController.text = '1';
+      // Snap focus back to name field for next scan/type
+      FocusScope.of(context).requestFocus(_nameFocusNode);
+    }
+  }
+
   Future<void> _saveBatch() async {
     if (_items.isEmpty) return;
 
@@ -132,22 +173,24 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
           .map(
             (item) => {
               'name': item.name,
-              'quantity': item.quantity,
+              'stock': item.quantity,
               'purchase_price': item.purchasePrice,
-              'margin_percentage': item.marginPercentage,
+              'wholesale_margin': item.marginPercentage,
+              'retail_multiplier': 1.30, // Default retail multiplier
               'wholesale_price': item.wholesalePrice,
               'retail_price': item.retailPrice,
-              'tva_percentage': item.tvaPercentage,
+              'tva': item.tvaPercentage,
+              'category': 'Uncategorized',
             },
           )
           .toList();
 
-      await supabase.from('inventory_items').insert(batchData);
+      await supabase.from('products').insert(batchData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Batch successfully saved to database!'),
+          SnackBar(
+            content: Text('smart_batch.success'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -182,9 +225,9 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Smart Invoice Scanner',
-                    style: TextStyle(
+                  Text(
+                    'smart_batch.title'.tr(),
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF203A43),
@@ -193,7 +236,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _scanInvoice,
                     icon: const Icon(Icons.document_scanner),
-                    label: const Text('Scan Invoice (AI)'),
+                    label: Text('smart_batch.scan_invoice'.tr()),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue.shade700,
                       foregroundColor: Colors.white,
@@ -210,10 +253,83 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Upload an invoice and the AI will automatically extract items and calculate your wholesale and retail margins.',
+                'smart_batch.subtitle'.tr(),
                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+
+              // Rapid Entry Quick Add Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: TextField(
+                        controller: _quickNameController,
+                        focusNode: _nameFocusNode,
+                        decoration: InputDecoration(
+                          hintText: 'smart_batch.item_name'.tr(),
+                          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.blue.shade400, size: 20),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => FocusScope.of(context).requestFocus(_quantityFocusNode),
+                      ),
+                    ),
+                    Container(width: 1, height: 30, color: Colors.grey.shade200),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _quickQuantityController,
+                        focusNode: _quantityFocusNode,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: 'smart_batch.qty'.tr(),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => FocusScope.of(context).requestFocus(_priceFocusNode),
+                      ),
+                    ),
+                    Container(width: 1, height: 30, color: Colors.grey.shade200),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _quickPriceController,
+                        focusNode: _priceFocusNode,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          hintText: 'smart_batch.unit_price'.tr(),
+                          prefixIcon: Icon(Icons.attach_money, color: Colors.green.shade600, size: 20),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => _addRapidItem(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade600,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        onPressed: _addRapidItem,
+                        tooltip: 'Add to Batch (Enter)',
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
               if (_isLoading)
                 const Center(
@@ -235,7 +351,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No items scanned yet.',
+                          'smart_batch.no_items'.tr(),
                           style: TextStyle(
                             color: Colors.grey.shade500,
                             fontSize: 18,
@@ -270,75 +386,59 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                                     WidgetStateProperty.resolveWith(
                                       (states) => Colors.grey.shade50,
                                     ),
-                                columns: const [
+                                columns: [
                                   DataColumn(
                                     label: Text(
-                                      'Product Name',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_name'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'Qty',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_qty'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      "Prix d'Achat",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_purchase'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'Marge %',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_margin'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'Prix de Gros',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_wholesale'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'Prix Détail',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_retail'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'TVA %',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_tva'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     numeric: true,
                                   ),
                                   DataColumn(
                                     label: Text(
-                                      'Actions',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'smart_batch.col_actions'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 ],
@@ -457,7 +557,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                               ElevatedButton.icon(
                                 onPressed: _saveBatch,
                                 icon: const Icon(Icons.save),
-                                label: const Text('Save Batch to Database'),
+                                label: Text('smart_batch.save_batch'.tr()),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,

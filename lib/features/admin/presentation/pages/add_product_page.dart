@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -62,16 +64,43 @@ class _AddProductPageState extends State<AddProductPage> {
     });
   }
 
-  void _saveProduct() {
+  Future<void> _saveProduct() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Save to Supabase database
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product added successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      context.pop(); // Go back to products list
+      try {
+        final supabase = Supabase.instance.client;
+        
+        await supabase.from('products').insert({
+          'name': _nameController.text,
+          'barcode': _barcodeController.text.isEmpty ? null : _barcodeController.text,
+          'category': _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text,
+          'purchase_price': double.tryParse(_purchasePriceController.text) ?? 0.0,
+          'wholesale_margin': double.tryParse(_wholesaleMarginController.text) ?? 0.0,
+          'retail_multiplier': double.tryParse(_retailMultiplierController.text) ?? 1.30,
+          'tva': double.tryParse(_tvaController.text) ?? 19.0,
+          'wholesale_price': _wholesalePrice,
+          'retail_price': _retailPrice,
+          'stock': 0, // Default stock when just creating a product definition
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('add_product.success'.tr()),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.pop(); // Go back to products list
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving product: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -87,7 +116,7 @@ class _AddProductPageState extends State<AddProductPage> {
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter $label';
+          return 'add_product.error_empty'.tr();
         }
         return null;
       },
@@ -154,9 +183,9 @@ class _AddProductPageState extends State<AddProductPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Add New Product',
-                            style: TextStyle(
+                          Text(
+                            'add_product.title'.tr(),
+                            style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1A2A32),
@@ -164,44 +193,44 @@ class _AddProductPageState extends State<AddProductPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Enter product details and margins. Prices will calculate automatically.',
+                            'add_product.subtitle'.tr(),
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 32),
                           
                           // Basic Info
-                          const Text('BASIC INFORMATION', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+                          Text('add_product.basic_info'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
                           const SizedBox(height: 16),
-                          _buildTextField(controller: _nameController, label: 'Product Name', icon: Icons.inventory_2_outlined),
+                          _buildTextField(controller: _nameController, label: 'add_product.product_name'.tr(), icon: Icons.inventory_2_outlined),
                           const SizedBox(height: 16),
                           _buildTextField(
                             controller: _barcodeController, 
-                            label: 'Barcode (Scan or Type)', 
+                            label: 'add_product.barcode'.tr(), 
                             icon: Icons.qr_code_scanner,
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(controller: _categoryController, label: 'Category', icon: Icons.category_outlined),
+                          _buildTextField(controller: _categoryController, label: 'add_product.category'.tr(), icon: Icons.category_outlined),
                           
                           const SizedBox(height: 32),
                           const Divider(),
                           const SizedBox(height: 32),
 
                           // Pricing & Margins
-                          const Text('PRICING & MARGINS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+                          Text('add_product.pricing_margins'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Expanded(child: _buildTextField(controller: _purchasePriceController, label: 'Purchase Price (Prix d\'achat)', icon: Icons.attach_money, isNumber: true)),
+                              Expanded(child: _buildTextField(controller: _purchasePriceController, label: 'add_product.purchase_price'.tr(), icon: Icons.attach_money, isNumber: true)),
                               const SizedBox(width: 16),
-                              Expanded(child: _buildTextField(controller: _tvaController, label: 'TVA', icon: Icons.percent, isNumber: true, suffixText: '%')),
+                              Expanded(child: _buildTextField(controller: _tvaController, label: 'add_product.tva'.tr(), icon: Icons.percent, isNumber: true, suffixText: '%')),
                             ],
                           ),
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Expanded(child: _buildTextField(controller: _wholesaleMarginController, label: 'Wholesale Margin (Marge Gros)', icon: Icons.trending_up, isNumber: true, suffixText: '%')),
+                              Expanded(child: _buildTextField(controller: _wholesaleMarginController, label: 'add_product.wholesale_margin'.tr(), icon: Icons.trending_up, isNumber: true, suffixText: '%')),
                               const SizedBox(width: 16),
-                              Expanded(child: _buildTextField(controller: _retailMultiplierController, label: 'Retail Multiplier', icon: Icons.storefront, isNumber: true, suffixText: 'x (e.g. 1.30)')),
+                              Expanded(child: _buildTextField(controller: _retailMultiplierController, label: 'add_product.retail_multiplier'.tr(), icon: Icons.storefront, isNumber: true, suffixText: 'x')),
                             ],
                           ),
                           const SizedBox(height: 40),
@@ -216,9 +245,9 @@ class _AddProductPageState extends State<AddProductPage> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Save Product',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              child: Text(
+                                'add_product.save'.tr(),
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             ),
                           ),
@@ -244,9 +273,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Live Preview',
-                          style: TextStyle(
+                        Text(
+                          'add_product.calculated_prices'.tr(),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1A2A32),
@@ -255,8 +284,8 @@ class _AddProductPageState extends State<AddProductPage> {
                         const SizedBox(height: 32),
                         
                         _PriceCard(
-                          title: 'Purchase Price',
-                          subtitle: 'Base cost without margins',
+                          title: 'add_product.purchase_price'.tr(),
+                          subtitle: '',
                           price: double.tryParse(_purchasePriceController.text) ?? 0.0,
                           icon: Icons.shopping_cart_outlined,
                           color: Colors.grey.shade700,
@@ -264,8 +293,8 @@ class _AddProductPageState extends State<AddProductPage> {
                         const SizedBox(height: 24),
                         
                         _PriceCard(
-                          title: 'Wholesale Price',
-                          subtitle: 'Prix de gros',
+                          title: 'add_product.wholesale_price'.tr(),
+                          subtitle: '',
                           price: _wholesalePrice,
                           icon: Icons.local_shipping_outlined,
                           color: Colors.blue.shade700,
@@ -273,8 +302,8 @@ class _AddProductPageState extends State<AddProductPage> {
                         const SizedBox(height: 24),
                         
                         _PriceCard(
-                          title: 'Retail Price',
-                          subtitle: 'Prix détail',
+                          title: 'add_product.retail_price'.tr(),
+                          subtitle: '',
                           price: _retailPrice,
                           icon: Icons.storefront,
                           color: Colors.green.shade700,

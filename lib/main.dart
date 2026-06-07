@@ -11,16 +11,31 @@ import 'features/admin/presentation/pages/admin_layout.dart';
 import 'features/admin/presentation/pages/smart_batch_page.dart';
 import 'features/admin/presentation/pages/products_page.dart';
 import 'features/admin/presentation/pages/add_product_page.dart';
+import 'features/admin/presentation/pages/pos_page.dart';
+import 'features/admin/presentation/pages/suppliers_page.dart';
+import 'features/admin/presentation/pages/expenses_page.dart';
+import 'features/admin/presentation/pages/returns_page.dart';
+import 'features/admin/presentation/pages/analytics_page.dart';
+
+import 'package:easy_localization/easy_localization.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   
   await Supabase.initialize(
     url: 'https://dggulctustnlfyadcanx.supabase.co',
     anonKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
   );
   
-  runApp(const MyApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('fr'), Locale('ar')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en'),
+      child: const MyApp(),
+    ),
+  );
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -48,6 +63,26 @@ final GoRouter _router = GoRouter(
           path: '/admin-dashboard',
           builder: (context, state) => const AdminDashboardPage(),
           routes: [
+            GoRoute(
+              path: 'pos',
+              builder: (context, state) => const PosPage(),
+            ),
+            GoRoute(
+              path: 'suppliers',
+              builder: (context, state) => const SuppliersPage(),
+            ),
+            GoRoute(
+              path: 'expenses',
+              builder: (context, state) => const ExpensesPage(),
+            ),
+            GoRoute(
+              path: 'returns',
+              builder: (context, state) => const ReturnsPage(),
+            ),
+            GoRoute(
+              path: 'analytics',
+              builder: (context, state) => const AnalyticsPage(),
+            ),
             GoRoute(
               path: 'smart-batch',
               builder: (context, state) => const SmartBatchPage(),
@@ -85,6 +120,9 @@ class MyApp extends StatelessWidget {
     return BlocProvider(
       create: (context) => AuthBloc(),
       child: MaterialApp.router(
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
         title: 'Deltaware',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF203A43)),

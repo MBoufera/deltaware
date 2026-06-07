@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -10,139 +11,269 @@ class AdminDashboardPage extends StatefulWidget {
 }
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
-  late final Future<List<Map<String, dynamic>>> _future;
+  final _supabase = Supabase.instance.client;
+  late final Stream<List<Map<String, dynamic>>> _productsStream;
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchOverviewData();
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchOverviewData() async {
-    try {
-      // Temporarily fetching from 'todos' as a placeholder for dashboard overview
-      final response = await Supabase.instance.client.from('todos').select();
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Error fetching data: $e');
-      return [];
-    }
+    _productsStream = _supabase.from('products').stream(primaryKey: ['id']).order('created_at', ascending: false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFFF4F7F6),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome, Library Owner',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF203A43),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Here is your library overview.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      )
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _future,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C5364)),
-                            ),
-                          );
-                        }
+          padding: const EdgeInsets.all(32.0),
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _productsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                'Error loading data: ${snapshot.error}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.redAccent),
-                              ),
-                            ),
-                          );
-                        }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              }
 
-                        final todos = snapshot.data ?? [];
+              final products = snapshot.data ?? [];
+              
+              // Calculate Metrics
+              int totalProducts = products.length;
+              double totalValue = 0.0;
+              List<Map<String, dynamic>> lowStockItems = [];
 
-                        if (todos.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.library_books_outlined, size: 64, color: Colors.grey.shade300),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No data available yet.',
-                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
+              for (var p in products) {
+                int stock = p['stock'] ?? 0;
+                double price = (p['retail_price'] as num?)?.toDouble() ?? 0.0;
+                totalValue += (stock * price);
+                
+                if (stock < 10) {
+                  lowStockItems.add(p);
+                }
+              }
 
-                        return ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: todos.length,
-                          separatorBuilder: (context, index) => const Divider(),
-                          itemBuilder: (context, index) {
-                            final todo = todos[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF2C5364).withValues(alpha: 0.1),
-                                child: const Icon(Icons.task_alt, color: Color(0xFF2C5364)),
-                              ),
-                              title: Text(
-                                todo['name'] ?? 'Unnamed Task',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: Text(
-                                todo['description'] ?? 'No description',
-                                style: TextStyle(color: Colors.grey.shade600),
-                              ),
-                            );
-                          },
-                        );
-                      },
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'dashboard.business_overview'.tr(),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A2A32),
                     ),
                   ),
-                ),
-              ),
-            ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'dashboard.live_metrics'.tr(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Top Metrics Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricCard(
+                          title: 'dashboard.total_products'.tr(),
+                          value: totalProducts.toString(),
+                          icon: Icons.inventory_2,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: _MetricCard(
+                          title: 'dashboard.total_value'.tr(),
+                          value: '\$${totalValue.toStringAsFixed(2)}',
+                          icon: Icons.account_balance_wallet,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: _MetricCard(
+                          title: 'dashboard.low_stock_alerts'.tr(),
+                          value: lowStockItems.length.toString(),
+                          icon: Icons.warning_amber_rounded,
+                          color: lowStockItems.isNotEmpty ? Colors.red : Colors.orange,
+                          isAlert: lowStockItems.isNotEmpty,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Low Stock Section
+                  Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Text(
+                        'dashboard.items_restock'.tr(),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A2A32)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: lowStockItems.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade300),
+                                    const SizedBox(height: 16),
+                                    Text('dashboard.stock_great'.tr(), style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                                  ],
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: lowStockItems.length,
+                                separatorBuilder: (context, index) => const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final item = lowStockItems[index];
+                                  final stock = item['stock'] ?? 0;
+                                  return ListTile(
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(Icons.inventory_2_outlined, color: Colors.red.shade700),
+                                    ),
+                                    title: Text(item['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    subtitle: Text('Category: ${item['category'] ?? 'N/A'}'),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: stock == 0 ? Colors.red.shade100 : Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        '$stock ${'dashboard.in_stock'.tr()}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: stock == 0 ? Colors.red.shade900 : Colors.orange.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final MaterialColor color;
+  final bool isAlert;
+
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.isAlert = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: isAlert ? Border.all(color: Colors.red.shade200, width: 2) : null,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color.shade700, size: 28),
+              ),
+              if (isAlert)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('dashboard.action_needed'.tr(), style: TextStyle(color: Colors.red.shade900, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: isAlert ? Colors.red.shade700 : const Color(0xFF1A2A32),
+            ),
+          ),
+        ],
       ),
     );
   }

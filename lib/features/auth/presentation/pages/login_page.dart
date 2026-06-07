@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:easy_localization/easy_localization.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -152,7 +153,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Elevate your library management with our powerful, intuitive platform.',
+                        'auth.brand_desc'.tr(),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.white70,
                         ),
@@ -212,7 +213,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Welcome Back',
+          'auth.welcome_back'.tr(),
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -221,7 +222,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         const SizedBox(height: 8),
         Text(
-          'Sign in to your account',
+          'auth.sign_in_desc'.tr(),
           style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
           textAlign: TextAlign.center,
         ),
@@ -234,14 +235,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         // Form Fields
         _buildTextField(
           controller: _emailController,
-          label: 'Email Address',
+          label: 'auth.email'.tr(),
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 20),
         _buildTextField(
           controller: _passwordController,
-          label: 'Password',
+          label: 'auth.password'.tr(),
           icon: Icons.lock_outline,
           obscureText: true,
         ),
@@ -278,11 +279,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   );
                 }
               },
-              child: const Text('Register', style: TextStyle(color: Color(0xFF2C5364), fontWeight: FontWeight.bold)),
+              child: Text('auth.register'.tr(), style: const TextStyle(color: Color(0xFF2C5364), fontWeight: FontWeight.bold)),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF2C5364))),
+              child: Text('auth.forgot_password'.tr(), style: const TextStyle(color: Color(0xFF2C5364))),
             ),
           ],
         ),
@@ -298,43 +299,21 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 ),
               );
             }
-            return Container(
-              height: 55,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF203A43), Color(0xFF2C5364)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2C5364).withValues(alpha: 0.4),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+            return ElevatedButton(
+              onPressed: () {
+                final email = _emailController.text.trim();
+                final password = _passwordController.text;
+                context.read<AuthBloc>().add(LoginRequested(email, password));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2C5364),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
               ),
-              child: ElevatedButton(
-                onPressed: () {
-                  final email = _emailController.text.trim();
-                  final password = _passwordController.text;
-                  if (email.isNotEmpty && password.isNotEmpty) {
-                    // Role is selected in _selectedRole, ready to be used if backend supports it
-                    context.read<AuthBloc>().add(LoginRequested(email, password));
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: const Text(
-                  'Sign In',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+              child: Text(
+                'auth.sign_in'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             );
           },
@@ -352,9 +331,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
       child: Row(
         children: [
-          _buildRoleTab('Admin', UserRole.admin, Icons.admin_panel_settings),
-          _buildRoleTab('Staff', UserRole.staff, Icons.manage_accounts),
-          _buildRoleTab('Worker', UserRole.worker, Icons.person),
+          Expanded(child: _buildRoleTab('auth.admin'.tr(), UserRole.admin, Icons.admin_panel_settings)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildRoleTab('auth.staff'.tr(), UserRole.staff, Icons.manage_accounts)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildRoleTab('auth.worker'.tr(), UserRole.worker, Icons.person)),
         ],
       ),
     );

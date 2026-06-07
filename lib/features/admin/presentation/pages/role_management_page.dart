@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class RoleManagementPage extends StatefulWidget {
   const RoleManagementPage({super.key});
@@ -40,9 +41,9 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Roles & Permissions',
-                style: TextStyle(
+              Text(
+                'roles.title'.tr(),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF203A43),
@@ -50,7 +51,7 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Manage what each role can access.',
+                'roles.subtitle'.tr(),
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 24),

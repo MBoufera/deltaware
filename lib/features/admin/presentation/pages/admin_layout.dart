@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AdminLayout extends StatelessWidget {
   final Widget child;
@@ -13,7 +14,7 @@ class AdminLayout extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
-      drawer: isDesktop ? null : _AdminSidebar(isDrawer: true),
+      drawer: isDesktop ? null : const _AdminSidebar(isDrawer: true),
       appBar: isDesktop
           ? null
           : AppBar(
@@ -45,6 +46,17 @@ class _AdminSidebar extends StatelessWidget {
   final bool isDrawer;
   
   const _AdminSidebar({required this.isDrawer});
+
+  void _toggleLanguage(BuildContext context) {
+    final currentLocale = context.locale.languageCode;
+    if (currentLocale == 'en') {
+      context.setLocale(const Locale('fr'));
+    } else if (currentLocale == 'fr') {
+      context.setLocale(const Locale('ar'));
+    } else {
+      context.setLocale(const Locale('en'));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +96,7 @@ class _AdminSidebar extends StatelessWidget {
               children: [
                 _SidebarItem(
                   icon: Icons.pie_chart_outline,
-                  label: 'Overview',
+                  label: 'sidebar.overview'.tr(),
                   isActive: location == '/admin-dashboard',
                   onTap: () {
                     if (isDrawer) Navigator.pop(context);
@@ -93,18 +105,18 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
-                  icon: Icons.document_scanner_outlined,
-                  label: 'Smart Invoice',
-                  isActive: location.startsWith('/admin-dashboard/smart-batch'),
+                  icon: Icons.point_of_sale,
+                  label: 'sidebar.pos'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/pos'),
                   onTap: () {
                     if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/smart-batch');
+                    context.go('/admin-dashboard/pos');
                   },
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
                   icon: Icons.inventory_2_outlined,
-                  label: 'Inventory',
+                  label: 'sidebar.inventory'.tr(),
                   isActive: location.startsWith('/admin-dashboard/products'),
                   onTap: () {
                     if (isDrawer) Navigator.pop(context);
@@ -113,8 +125,58 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
+                  icon: Icons.document_scanner_outlined,
+                  label: 'sidebar.smart_invoice'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/smart-batch'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/smart-batch');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
+                  icon: Icons.local_shipping_outlined,
+                  label: 'sidebar.suppliers'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/suppliers'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/suppliers');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'sidebar.expenses'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/expenses'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/expenses');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
+                  icon: Icons.keyboard_return_outlined,
+                  label: 'sidebar.returns'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/returns'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/returns');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
+                  icon: Icons.bar_chart_outlined,
+                  label: 'sidebar.analytics'.tr(),
+                  isActive: location.startsWith('/admin-dashboard/analytics'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/analytics');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
                   icon: Icons.people_outline,
-                  label: 'Users',
+                  label: 'sidebar.users'.tr(),
                   isActive: location.startsWith('/admin-dashboard/users'),
                   onTap: () {
                     if (isDrawer) Navigator.pop(context);
@@ -124,7 +186,7 @@ class _AdminSidebar extends StatelessWidget {
                 const SizedBox(height: 8),
                 _SidebarItem(
                   icon: Icons.security_outlined,
-                  label: 'Roles',
+                  label: 'sidebar.roles'.tr(),
                   isActive: location.startsWith('/admin-dashboard/roles'),
                   onTap: () {
                     if (isDrawer) Navigator.pop(context);
@@ -135,7 +197,7 @@ class _AdminSidebar extends StatelessWidget {
             ),
           ),
           
-          // Bottom User Profile
+          // Bottom User Profile & Language Switcher
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -143,37 +205,58 @@ class _AdminSidebar extends StatelessWidget {
                 top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
             ),
-            child: Row(
+            child: Column(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.blue.shade900,
-                  child: const Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Language Switcher
+                InkWell(
+                  onTap: () => _toggleLanguage(context),
+                  child: Row(
                     children: [
-                      const Text(
-                        'Admin',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        'admin@deltaware',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
+                      const Icon(Icons.language, color: Colors.white54, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'sidebar.language'.tr() + ' (${context.locale.languageCode.toUpperCase()})',
+                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white54, size: 20),
-                  onPressed: () {
-                    context.go('/');
-                  },
-                  tooltip: 'Log Out',
-                )
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.blue.shade900,
+                      child: const Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Admin',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            'admin@deltaware',
+                            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: Colors.white54, size: 20),
+                      onPressed: () {
+                        context.go('/');
+                      },
+                      tooltip: 'sidebar.logout'.tr(),
+                    )
+                  ],
+                ),
               ],
             ),
           )
