@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../bloc/product/product_bloc.dart';
+import '../bloc/product/product_event.dart';
+import '../bloc/product/product_state.dart';
 
-class AddProductPage extends StatefulWidget {
+class AddProductPage extends StatelessWidget {
   const AddProductPage({super.key});
 
   @override
-  State<AddProductPage> createState() => _AddProductPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ProductBloc(),
+      child: const AddProductForm(),
+    );
+  }
 }
 
-class _AddProductPageState extends State<AddProductPage> {
+class AddProductForm extends StatefulWidget {
+  const AddProductForm({super.key});
+
+  @override
+  State<AddProductForm> createState() => _AddProductFormState();
+}
+
+class _AddProductFormState extends State<AddProductForm> {
   final _formKey = GlobalKey<FormState>();
   
   // Controllers
@@ -64,62 +79,25 @@ class _AddProductPageState extends State<AddProductPage> {
     });
   }
 
-  Future<void> _saveProduct() async {
+  void _saveProduct() {
     if (_formKey.currentState!.validate()) {
-      try {
-        final supabase = Supabase.instance.client;
-        
-        final categoryName = _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text;
-        var categoryResponse = await supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
-        String categoryId;
-        if (categoryResponse == null) {
-          final newCat = await supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
-          categoryId = newCat['id'];
-        } else {
-          categoryId = categoryResponse['id'];
-        }
-        
-        final productResponse = await supabase.from('products').insert({
-          'name_fr': _nameController.text,
-          'ref_code': _barcodeController.text.isEmpty ? null : _barcodeController.text,
-          'category_id': categoryId,
-        }).select('id').single();
-        final productId = productResponse['id'];
-        
-        final retailMultiplier = double.tryParse(_retailMultiplierController.text) ?? 1.30;
-        final margeDetail = (retailMultiplier - 1.0) * 100;
-        
-        await supabase.from('product_pricing').insert({
-          'product_id': productId,
-          'prix_achat_super_gros': double.tryParse(_purchasePriceController.text) ?? 0.0,
-          'marge_gros_percent': double.tryParse(_wholesaleMarginController.text) ?? 0.0,
-          'marge_detail_percent': margeDetail,
-          'tva_rate': double.tryParse(_tvaController.text) ?? 19.0,
-        });
-        
-        await supabase.from('stock').insert({
-          'product_id': productId,
-        });
+      final purchasePrice = double.tryParse(_purchasePriceController.text) ?? 0.0;
+      final tva = double.tryParse(_tvaController.text) ?? 19.0;
+      final marginPercent = double.tryParse(_wholesaleMarginController.text) ?? 0.0;
+      final retailMultiplier = double.tryParse(_retailMultiplierController.text) ?? 1.30;
+      final categoryName = _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('add_product.success'.tr()),
-              backgroundColor: Colors.green,
-            ),
-          );
-          context.pop(); // Go back to products list
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving product: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+      context.read<ProductBloc>().add(
+        CreateProduct(
+          nameFr: _nameController.text,
+          refCode: _barcodeController.text.isEmpty ? null : _barcodeController.text,
+          categoryName: categoryName,
+          purchasePrice: purchasePrice,
+          tva: tva,
+          wholesaleMargin: marginPercent,
+          retailMultiplier: retailMultiplier,
+        ),
+      );
     }
   }
 
@@ -163,176 +141,203 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A2A32)),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Container(
-            width: 800, // Fixed width for nice layout on desktop
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+    return BlocListener<ProductBloc, ProductState>(
+      listener: (context, state) {
+        if (state is ProductOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('add_product.success'.tr()),
+              backgroundColor: Colors.green,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // LEFT SIDE: Input Form
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(40.0),
-                    child: Form(
-                      key: _formKey,
+          );
+          context.pop(true); // Go back to products list indicating success
+        } else if (state is ProductError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving product: ${state.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F6),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF1A2A32)),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Container(
+              width: 800, // Fixed width for nice layout on desktop
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // LEFT SIDE: Input Form
+                  Expanded(
+                    flex: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.all(40.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'add_product.title'.tr(),
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A2A32),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'add_product.subtitle'.tr(),
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Basic Info
+                            Text('add_product.basic_info'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+                            const SizedBox(height: 16),
+                            _buildTextField(controller: _nameController, label: 'add_product.product_name'.tr(), icon: Icons.inventory_2_outlined),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _barcodeController, 
+                              label: 'add_product.barcode'.tr(), 
+                              icon: Icons.qr_code_scanner,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(controller: _categoryController, label: 'add_product.category'.tr(), icon: Icons.category_outlined),
+                            
+                            const SizedBox(height: 32),
+                            const Divider(),
+                            const SizedBox(height: 32),
+
+                            // Pricing & Margins
+                            Text('add_product.pricing_margins'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildTextField(controller: _purchasePriceController, label: 'add_product.purchase_price'.tr(), icon: Icons.attach_money, isNumber: true)),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildTextField(controller: _tvaController, label: 'add_product.tva'.tr(), icon: Icons.percent, isNumber: true, suffixText: '%')),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildTextField(controller: _wholesaleMarginController, label: 'add_product.wholesale_margin'.tr(), icon: Icons.trending_up, isNumber: true, suffixText: '%')),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildTextField(controller: _retailMultiplierController, label: 'add_product.retail_multiplier'.tr(), icon: Icons.storefront, isNumber: true, suffixText: 'x')),
+                              ],
+                            ),
+                            const SizedBox(height: 40),
+                            
+                            BlocBuilder<ProductBloc, ProductState>(
+                              builder: (context, state) {
+                                final isLoading = state is ProductLoading;
+                                return SizedBox(
+                                  width: double.infinity,
+                                  height: 56,
+                                  child: ElevatedButton(
+                                    onPressed: isLoading ? null : _saveProduct,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1A2A32),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 0,
+                                    ),
+                                    child: isLoading
+                                        ? const CircularProgressIndicator(color: Colors.white)
+                                        : Text(
+                                            'add_product.save'.tr(),
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // RIGHT SIDE: Live Preview Card
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
+                        border: Border(left: BorderSide(color: Colors.grey.shade200)),
+                      ),
+                      padding: const EdgeInsets.all(40.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'add_product.title'.tr(),
+                            'add_product.calculated_prices'.tr(),
                             style: const TextStyle(
-                              fontSize: 28,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1A2A32),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'add_product.subtitle'.tr(),
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
                           const SizedBox(height: 32),
                           
-                          // Basic Info
-                          Text('add_product.basic_info'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
-                          const SizedBox(height: 16),
-                          _buildTextField(controller: _nameController, label: 'add_product.product_name'.tr(), icon: Icons.inventory_2_outlined),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _barcodeController, 
-                            label: 'add_product.barcode'.tr(), 
-                            icon: Icons.qr_code_scanner,
+                          _PriceCard(
+                            title: 'add_product.purchase_price'.tr(),
+                            subtitle: '',
+                            price: double.tryParse(_purchasePriceController.text) ?? 0.0,
+                            icon: Icons.shopping_cart_outlined,
+                            color: Colors.grey.shade700,
                           ),
-                          const SizedBox(height: 16),
-                          _buildTextField(controller: _categoryController, label: 'add_product.category'.tr(), icon: Icons.category_outlined),
+                          const SizedBox(height: 24),
                           
-                          const SizedBox(height: 32),
-                          const Divider(),
-                          const SizedBox(height: 32),
-
-                          // Pricing & Margins
-                          Text('add_product.pricing_margins'.tr().toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(child: _buildTextField(controller: _purchasePriceController, label: 'add_product.purchase_price'.tr(), icon: Icons.attach_money, isNumber: true)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildTextField(controller: _tvaController, label: 'add_product.tva'.tr(), icon: Icons.percent, isNumber: true, suffixText: '%')),
-                            ],
+                          _PriceCard(
+                            title: 'add_product.wholesale_price'.tr(),
+                            subtitle: '',
+                            price: _wholesalePrice,
+                            icon: Icons.local_shipping_outlined,
+                            color: Colors.blue.shade700,
                           ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(child: _buildTextField(controller: _wholesaleMarginController, label: 'add_product.wholesale_margin'.tr(), icon: Icons.trending_up, isNumber: true, suffixText: '%')),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildTextField(controller: _retailMultiplierController, label: 'add_product.retail_multiplier'.tr(), icon: Icons.storefront, isNumber: true, suffixText: 'x')),
-                            ],
-                          ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 24),
                           
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _saveProduct,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1A2A32),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                'add_product.save'.tr(),
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                            ),
+                          _PriceCard(
+                            title: 'add_product.retail_price'.tr(),
+                            subtitle: '',
+                            price: _retailPrice,
+                            icon: Icons.storefront,
+                            color: Colors.green.shade700,
+                            isHighlight: true,
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                
-                // RIGHT SIDE: Live Preview Card
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(24),
-                        bottomRight: Radius.circular(24),
-                      ),
-                      border: Border(left: BorderSide(color: Colors.grey.shade200)),
-                    ),
-                    padding: const EdgeInsets.all(40.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'add_product.calculated_prices'.tr(),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A2A32),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        _PriceCard(
-                          title: 'add_product.purchase_price'.tr(),
-                          subtitle: '',
-                          price: double.tryParse(_purchasePriceController.text) ?? 0.0,
-                          icon: Icons.shopping_cart_outlined,
-                          color: Colors.grey.shade700,
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        _PriceCard(
-                          title: 'add_product.wholesale_price'.tr(),
-                          subtitle: '',
-                          price: _wholesalePrice,
-                          icon: Icons.local_shipping_outlined,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        _PriceCard(
-                          title: 'add_product.retail_price'.tr(),
-                          subtitle: '',
-                          price: _retailPrice,
-                          icon: Icons.storefront,
-                          color: Colors.green.shade700,
-                          isHighlight: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

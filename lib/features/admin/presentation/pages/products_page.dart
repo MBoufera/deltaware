@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../bloc/product/product_bloc.dart';
+import '../bloc/product/product_event.dart';
+import '../bloc/product/product_state.dart';
 
-class ProductsPage extends StatefulWidget {
+class ProductsPage extends StatelessWidget {
   const ProductsPage({super.key});
 
   @override
-  State<ProductsPage> createState() => _ProductsPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ProductBloc()..add(const LoadProducts()),
+      child: const ProductsView(),
+    );
+  }
 }
 
-class _ProductsPageState extends State<ProductsPage> {
-  final _supabase = Supabase.instance.client;
-  late final Future<List<Map<String, dynamic>>> _productsFuture;
+class ProductsView extends StatefulWidget {
+  const ProductsView({super.key});
 
   @override
-  void initState() {
-    super.initState();
-    _productsFuture = _supabase.from('products').select('*, categories(name_fr), product_pricing(*), stock(*)').order('created_at', ascending: false);
+  State<ProductsView> createState() => _ProductsViewState();
+}
+
+class _ProductsViewState extends State<ProductsView> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -54,8 +68,12 @@ class _ProductsPageState extends State<ProductsPage> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    context.go('/admin-dashboard/products/add');
+                  onPressed: () async {
+                    final result = await context.push('/admin-dashboard/products/add');
+                    // Reload products list when returning
+                    if (context.mounted) {
+                      context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+                    }
                   },
                   icon: const Icon(Icons.add, color: Colors.white),
                   label: Text(
@@ -98,12 +116,13 @@ class _ProductsPageState extends State<ProductsPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextField(
+                      controller: _searchController,
                       decoration: InputDecoration(
                         hintText: 'products.search_hint'.tr(),
                         border: InputBorder.none,
                       ),
                       onChanged: (value) {
-                        // Implement search filtering here
+                        context.read<ProductBloc>().add(LoadProducts(search: value));
                       },
                     ),
                   ),
@@ -132,17 +151,24 @@ class _ProductsPageState extends State<ProductsPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _productsFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
+                  child: BlocBuilder<ProductBloc, ProductState>(
+                    builder: (context, state) {
+                      if (state is ProductLoading) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                       }
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error loading products: ${snapshot.error}'));
+                      if (state is ProductError) {
+                        return Center(
+                          child: Text('Error loading products: ${state.message}'),
+                        );
                       }
                       
-                      final products = snapshot.data ?? [];
+                      final products = state is ProductsLoaded ? state.products : <Map<String, dynamic>>[];
+                      
                       if (products.isEmpty) {
                         return Center(
                           child: Padding(
@@ -258,7 +284,11 @@ class _ProductsPageState extends State<ProductsPage> {
                                         IconButton(
                                           icon: const Icon(Icons.delete_outline, size: 20),
                                           color: Colors.red.shade400,
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            final id = product['id'] as String;
+                                            context.read<ProductBloc>().add(DeleteProduct(id));
+                                            context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+                                          },
                                         ),
                                       ],
                                     ),
@@ -269,7 +299,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           ),
                         ),
                       );
-                    }
+                    },
                   ),
                 ),
               ),
