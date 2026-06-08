@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:deltaware/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:deltaware/features/auth/presentation/bloc/auth_event.dart';
 import 'package:deltaware/features/auth/presentation/bloc/auth_state.dart';

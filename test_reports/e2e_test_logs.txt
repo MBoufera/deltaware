@@ -1,0 +1,46 @@
+Connected devices:
+Windows (desktop) • windows • windows-x64    • Microsoft Windows [Version 10.0.26200.8457]
+Chrome (web)      • chrome  • web-javascript • Google Chrome 148.0.7778.217
+Edge (web)        • edge    • web-javascript • Microsoft Edge 149.0.4022.52
+[1]: Windows (windows)
+[2]: Chrome (chrome)
+[3]: Edge (edge)
+Please choose one (or "q" to quit): 1
+00:00 +0: loading C:/Users/BFr Mostafa/.gemini/antigravity-ide/scratch/deltaware/integration_test/app_test.dart
+Building Windows application...                                    30.8s
+√ Built build\windows\x64\runner\Debug\deltaware.exe
+00:00 +0: End-to-End App Test verify login screen renders and handles bad credentials
+[90m[🌎 Easy Localization] [DEBUG] Localization initialized[0m
+supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+[90m[🌎 Easy Localization] [DEBUG] Start[0m
+[90m[🌎 Easy Localization] [DEBUG] Init state[0m
+[32m[🌎 Easy Localization] [INFO] Saved locale loaded fr[0m
+[90m[🌎 Easy Localization] [DEBUG] Build[0m
+[90m[🌎 Easy Localization] [DEBUG] Init Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Init provider[0m
+[90m[🌎 Easy Localization] [DEBUG] Load Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Load asset from assets/translations[0m
+supabase.auth: INFO: Signing out user with scope: SignOutScope.local 
+[90m[🌎 Easy Localization] [DEBUG] Build[0m
+[90m[🌎 Easy Localization] [DEBUG] Init Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Init provider[0m
+00:08 +1: End-to-End App Test verify POS flow - navigate to POS, select sale type, search product
+[90m[🌎 Easy Localization] [DEBUG] Localization initialized[0m
+00:08 +1: End-to-End App Test verify login screen renders and handles bad credentials
+supabase.supabase_flutter: INFO: Supabase is already initialized. Skipping reinitialization. 
+00:08 +1: End-to-End App Test verify POS flow - navigate to POS, select sale type, search product
+[90m[🌎 Easy Localization] [DEBUG] Start[0m
+00:10 +1: End-to-End App Test verify login screen renders and handles bad credentials
+[90m[🌎 Easy Localization] [DEBUG] Init state[0m
+[32m[🌎 Easy Localization] [INFO] Saved locale loaded fr[0m
+[90m[🌎 Easy Localization] [DEBUG] Build[0m
+[90m[🌎 Easy Localization] [DEBUG] Init Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Init provider[0m
+[90m[🌎 Easy Localization] [DEBUG] Load Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Load asset from assets/translations[0m
+[90m[🌎 Easy Localization] [DEBUG] Build[0m
+[90m[🌎 Easy Localization] [DEBUG] Init Localization Delegate[0m
+[90m[🌎 Easy Localization] [DEBUG] Init provider[0m
+supabase.auth: INFO: Signing out user with scope: SignOutScope.local 
+00:41 +2: (tearDownAll)
+00:41 +2: All tests passed!

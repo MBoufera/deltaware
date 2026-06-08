@@ -1,0 +1,31 @@
+P1-S1-T3: Initialize FastAPI project with folder structure: app/core/{config.py, security.py, dependencies.py, permissions.py}, app/routers/, app/models/, app/schemas/, app/services/, app/utils/, main.py, requirements.txt
+P1-S1-T4: Install all backend dependencies: fastapi, uvicorn[standard], supabase, python-jose[cryptography], passlib[bcrypt], python-dotenv, reportlab, pydantic[v2], httpx, pillow, python-multipart, openpyxl
+P1-S1-T6: Initialize Git repository: .gitignore (exclude .env, build/, *.g.dart generated files), create branches main and develop, write README.md with project overview and setup instructions
+P2-S1-T1: Implement Supabase Auth integration in FastAPI using supabase-py: handle email/password authentication, map Supabase user to our users table on first login
+P2-S1-T2: Create JWT utility in core/security.py: create_access_token(user_id, role, permissions, expires_delta), create_refresh_token(), verify_token(token) → TokenPayload, using HS256
+P2-S1-T3: Define permission schema as Pydantic model: UserPermissions(manage_products, view_analytics, manage_clients, manage_workers, access_settings, make_sales, view_all_sales, cancel_sales, manage_stock) — all bool fields
+P2-S1-T4: Implement FastAPI dependency functions in core/dependencies.py: get_current_user() → User, require_admin(), require_permission(permission_name: str) — raises 403 if check fails
+P2-S1-T5: Build POST /api/auth/login: accepts {email, password}, returns {access_token, refresh_token, token_type, user: {id, full_name, role, permissions}}
+P2-S1-T6: Build POST /api/auth/refresh: accepts {refresh_token}, returns new {access_token, refresh_token}
+P2-S1-T7: Build POST /api/auth/logout: invalidate session via Supabase signout, update last_login timestamp
+P2-S1-T8: Build GET /api/auth/me: returns full current user profile including permissions — used on app startup for re-hydration
+P2-S2-T7: Implement Dio interceptor (AppInterceptor): inject Bearer token on every request, on 401 response → try token refresh → retry request → if refresh fails → trigger LogoutRequested
+P3-S1-T1: Build categories router: GET /api/categories, POST /api/categories (admin), PUT /api/categories/{id} (admin), DELETE /api/categories/{id} (admin). Include TVA rate in response.
+P3-S1-T2: Build products router: GET /api/products (filters: category_id, search, is_active, page, limit), POST /api/products (admin/manage_products), PUT /api/products/{id}, DELETE /api/products/{id}. Response includes pricing and stock summary.
+P3-S1-T3: Implement PricingService in app/services/pricing.py: compute_gros_price(prix_achat, marge_gros_pct) → HT, compute_detail_price(prix_gros_ht, marge_detail_pct) → HT, compute_ttc(prix_ht, tva_rate) → TTC, compute_timbre(total_ttc, rate) → timbre. All return Decimal rounded to 2.
+P3-S1-T4: Build pricing endpoints: GET /api/products/{id}/pricing (returns full price breakdown: achat, gros_ht, gros_ttc, detail_ht, detail_ttc, tva_rate, marge_pcts), PUT /api/products/{id}/pricing (auto-computes on save)
+P3-S1-T5: Build stock endpoints: GET /api/products/{id}/stock, PUT /api/products/{id}/stock (manual adjustment with reason: initial_load, adjustment, return), GET /api/products/low-stock (qty_detail < alert_threshold)
+P3-S1-T6: Build POST /api/products/{id}/image: receive multipart file, validate image type and size (max 2MB), upload to Supabase Storage product-images bucket, update product.image_url, return public URL
+P3-S1-T7: Build GET /api/products/search?q={query}: full-text search on name_fr, name_ar, ref_code using PostgreSQL ILIKE or full-text search. Return top 20 results with minimal fields for fast POS lookup.
+P3-S2-T1: Create ProductBloc: Events(LoadProducts{filters}, LoadSingleProduct, CreateProduct, UpdateProduct, DeleteProduct, UpdatePricing, UpdateStock), States(ProductInitial, ProductLoading, ProductsLoaded{list, pagination}, ProductError{message})
+P8-S1-T1: Unit tests for PricingService: test auto 10% margin, manual margin override, TVA 19%/9%/0%, timbre fiscal at 1%, edge cases (zero prix_achat, 100% margin, mixed TVA products).
+P8-S1-T2: Unit tests for SaleCalculatorService: single-TVA sale, mixed 19%+9% sale, sale with timbre, discount calculation, sale with 0% TVA item, large sale (50+ items).
+P8-S1-T3: Integration tests for auth endpoints using TestClient: login success, wrong password, inactive user blocked, token refresh valid and expired, permission denied on admin-only route.
+P8-S1-T4: Integration tests for product endpoints: create product with pricing, update margin, verify computed prices update, stock deduction after sale, low-stock alert threshold trigger.
+P8-S1-T5: Integration tests for sales endpoints: all 5 sale types, insufficient stock rejection (expect 400), sale cancellation with stock rollback, document generation after sale, sale_number uniqueness.
+P8-S1-T6: Integration tests for analytics endpoints: create known test sales in DB, call summary endpoint, verify computed totals match expected values for all periods (day, week, month, year).
+P8-S2-T1: Unit tests for all BLoC classes using bloc_test: AuthBloc (login success/failure, logout, auto-login), ProductBloc (load, create, error states), SalesBloc (add item, remove, checkout), AnalyticsBloc (period change).
+P8-S2-T2: Widget tests for key screens: Login screen (renders fields, submit disabled when empty, error shown on failure), Pricing widget (auto-calculation updates live), Cart panel (totals correct after add/remove).
+P8-S2-T3: Integration test: full authentication flow — app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.
+P8-S2-T4: Integration test: full POS flow — worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.
+P8-S2-T5: Performance test: product list with 500+ items (verify smooth 60fps scroll), analytics dashboard with 365-day chart (verify render < 2s), POS product search (verify results appear < 500ms).

@@ -135,6 +135,16 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
+                  icon: Icons.history_edu,
+                  label: 'Historique',
+                  isActive: location.startsWith('/admin-dashboard/documents'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/documents');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
                   icon: Icons.category_outlined,
                   label: 'Categories',
                   isActive: location.startsWith('/admin-dashboard/categories'),

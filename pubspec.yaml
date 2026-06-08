@@ -46,9 +46,12 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
   fl_chart: ^1.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -29,9 +29,9 @@
             "pdf_frontend": "pdf + printing packages"
         },
         "extra_implemented_features": [
-            "Smart Batch AI Invoice Scanner (Gemini AI) — not in original plan, already implemented as bonus"
+            "Smart Batch AI Invoice Scanner (Gemini AI) \u2014 not in original plan, already implemented as bonus"
         ],
-        "architecture_note": "FastAPI layer deferred — currently using Supabase direct queries via supabase_flutter. FastAPI tasks should be re-scoped as Supabase RPC / Edge Functions or added later as an API layer."
+        "architecture_note": "FastAPI layer deferred \u2014 currently using Supabase direct queries via supabase_flutter. FastAPI tasks should be re-scoped as Supabase RPC / Edge Functions or added later as an API layer."
     },
     "agent_instructions": {
         "description": "Rules for the AI agent to correctly read and update this file throughout the project",
@@ -39,7 +39,7 @@
             "1. Read this entire file before writing any code",
             "2. Check progress.current_phase and progress.current_sprint to know exactly where to resume",
             "3. Review notes on the last completed task for any carry-over decisions",
-            "4. Never skip ahead — implement phases in order; sprints within a phase in order"
+            "4. Never skip ahead \u2014 implement phases in order; sprints within a phase in order"
         ],
         "during_task": [
             "Set task status to 'in_progress' before starting",
@@ -51,7 +51,7 @@
             "Set task status to 'done'",
             "Set completed_at to ISO date string (e.g. '2026-06-05')",
             "Add concise notes about important decisions made or issues found",
-            "If task is blocked, set status to 'blocked' and explain in notes — do NOT skip"
+            "If task is blocked, set status to 'blocked' and explain in notes \u2014 do NOT skip"
         ],
         "after_sprint": [
             "Set sprint status to 'done' and progress_percent to 100",
@@ -69,13 +69,13 @@
             "pending": "Not started",
             "in_progress": "Currently being implemented",
             "done": "Completed and verified",
-            "blocked": "Cannot proceed — needs human decision or external dependency"
+            "blocked": "Cannot proceed \u2014 needs human decision or external dependency"
         },
         "priority_values": {
             "critical": "Project cannot advance without this",
             "high": "Important for core functionality",
             "medium": "Needed for good UX but not blocking",
-            "low": "Nice to have — do last"
+            "low": "Nice to have \u2014 do last"
         },
         "layer_values": {
             "frontend": "Flutter only",
@@ -149,7 +149,7 @@
                             "priority": "critical",
                             "status": "blocked",
                             "completed_at": null,
-                            "notes": "Same as T3 — no FastAPI layer yet. Backend logic lives in Flutter data layer using supabase_flutter."
+                            "notes": "Same as T3 \u2014 no FastAPI layer yet. Backend logic lives in Flutter data layer using supabase_flutter."
                         },
                         {
                             "task_id": "P1-S1-T5",
@@ -197,7 +197,7 @@
                         },
                         {
                             "task_id": "P1-S2-T3",
-                            "task": "Create table 'products': id UUID PK, ref_code VARCHAR UNIQUE, name_fr VARCHAR NOT NULL, name_ar VARCHAR, category_id UUID FK(categories), unit VARCHAR DEFAULT 'pièce', image_url TEXT, description TEXT, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ",
+                            "task": "Create table 'products': id UUID PK, ref_code VARCHAR UNIQUE, name_fr VARCHAR NOT NULL, name_ar VARCHAR, category_id UUID FK(categories), unit VARCHAR DEFAULT 'pi\u00e8ce', image_url TEXT, description TEXT, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ",
                             "layer": "database",
                             "priority": "critical",
                             "status": "done",
@@ -278,12 +278,12 @@
                         },
                         {
                             "task_id": "P1-S2-T12",
-                            "task": "Seed initial data: 1 admin account, 5 categories with correct TVA rates (Informatique 19%, Fournitures Scolaires 9%, Bureautique 19%, Trophées 19%, Accessoires Informatique 19%), default app_settings with DZD currency",
+                            "task": "Seed initial data: 1 admin account, 5 categories with correct TVA rates (Informatique 19%, Fournitures Scolaires 9%, Bureautique 19%, Troph\u00e9es 19%, Accessoires Informatique 19%), default app_settings with DZD currency",
                             "layer": "database",
                             "priority": "medium",
                             "status": "done",
                             "completed_at": "2026-06-08",
-                            "notes": "Default admin: admin@librarypos.dz / changeme123 — must be changed on first login"
+                            "notes": "Default admin: admin@librarypos.dz / changeme123 \u2014 must be changed on first login"
                         }
                     ]
                 }
@@ -316,7 +316,7 @@
                         },
                         {
                             "task_id": "P2-S1-T2",
-                            "task": "Create JWT utility in core/security.py: create_access_token(user_id, role, permissions, expires_delta), create_refresh_token(), verify_token(token) → TokenPayload, using HS256",
+                            "task": "Create JWT utility in core/security.py: create_access_token(user_id, role, permissions, expires_delta), create_refresh_token(), verify_token(token) \u2192 TokenPayload, using HS256",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "pending",
@@ -325,16 +325,16 @@
                         },
                         {
                             "task_id": "P2-S1-T3",
-                            "task": "Define permission schema as Pydantic model: UserPermissions(manage_products, view_analytics, manage_clients, manage_workers, access_settings, make_sales, view_all_sales, cancel_sales, manage_stock) — all bool fields",
+                            "task": "Define permission schema as Pydantic model: UserPermissions(manage_products, view_analytics, manage_clients, manage_workers, access_settings, make_sales, view_all_sales, cancel_sales, manage_stock) \u2014 all bool fields",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "pending",
                             "completed_at": null,
-                            "notes": "Admin gets all True by default. Workers start with all False — admin configures per worker."
+                            "notes": "Admin gets all True by default. Workers start with all False \u2014 admin configures per worker."
                         },
                         {
                             "task_id": "P2-S1-T4",
-                            "task": "Implement FastAPI dependency functions in core/dependencies.py: get_current_user() → User, require_admin(), require_permission(permission_name: str) — raises 403 if check fails",
+                            "task": "Implement FastAPI dependency functions in core/dependencies.py: get_current_user() \u2192 User, require_admin(), require_permission(permission_name: str) \u2014 raises 403 if check fails",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "pending",
@@ -370,7 +370,7 @@
                         },
                         {
                             "task_id": "P2-S1-T8",
-                            "task": "Build GET /api/auth/me: returns full current user profile including permissions — used on app startup for re-hydration",
+                            "task": "Build GET /api/auth/me: returns full current user profile including permissions \u2014 used on app startup for re-hydration",
                             "layer": "backend",
                             "priority": "high",
                             "status": "pending",
@@ -423,7 +423,7 @@
                         },
                         {
                             "task_id": "P2-S2-T5",
-                            "task": "Implement go_router configuration with guards: /splash → /login (if unauthenticated) or /admin (if admin) or /worker (if worker). Admin shell with sidebar nav, Worker shell with bottom nav. Redirect logic based on token + role",
+                            "task": "Implement go_router configuration with guards: /splash \u2192 /login (if unauthenticated) or /admin (if admin) or /worker (if worker). Admin shell with sidebar nav, Worker shell with bottom nav. Redirect logic based on token + role",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -432,7 +432,7 @@
                         },
                         {
                             "task_id": "P2-S2-T6",
-                            "task": "Build SplashScreen: show logo 1.5s, call AuthCheckRequested, route based on result. If token exists and valid → role-based home. If expired → try refresh → if fails → login",
+                            "task": "Build SplashScreen: show logo 1.5s, call AuthCheckRequested, route based on result. If token exists and valid \u2192 role-based home. If expired \u2192 try refresh \u2192 if fails \u2192 login",
                             "layer": "frontend",
                             "priority": "high",
                             "status": "done",
@@ -441,7 +441,7 @@
                         },
                         {
                             "task_id": "P2-S2-T7",
-                            "task": "Implement Dio interceptor (AppInterceptor): inject Bearer token on every request, on 401 response → try token refresh → retry request → if refresh fails → trigger LogoutRequested",
+                            "task": "Implement Dio interceptor (AppInterceptor): inject Bearer token on every request, on 401 response \u2192 try token refresh \u2192 retry request \u2192 if refresh fails \u2192 trigger LogoutRequested",
                             "layer": "frontend",
                             "priority": "high",
                             "status": "pending",
@@ -488,7 +488,7 @@
                         },
                         {
                             "task_id": "P3-S1-T3",
-                            "task": "Implement PricingService in app/services/pricing.py: compute_gros_price(prix_achat, marge_gros_pct) → HT, compute_detail_price(prix_gros_ht, marge_detail_pct) → HT, compute_ttc(prix_ht, tva_rate) → TTC, compute_timbre(total_ttc, rate) → timbre. All return Decimal rounded to 2.",
+                            "task": "Implement PricingService in app/services/pricing.py: compute_gros_price(prix_achat, marge_gros_pct) \u2192 HT, compute_detail_price(prix_gros_ht, marge_detail_pct) \u2192 HT, compute_ttc(prix_ht, tva_rate) \u2192 TTC, compute_timbre(total_ttc, rate) \u2192 timbre. All return Decimal rounded to 2.",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "pending",
@@ -544,7 +544,7 @@
                             "task": "Create ProductBloc: Events(LoadProducts{filters}, LoadSingleProduct, CreateProduct, UpdateProduct, DeleteProduct, UpdatePricing, UpdateStock), States(ProductInitial, ProductLoading, ProductsLoaded{list, pagination}, ProductError{message})",
                             "layer": "frontend",
                             "priority": "critical",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -559,7 +559,7 @@
                         },
                         {
                             "task_id": "P3-S2-T3",
-                            "task": "Build add/edit product form: TextFields for name_fr, name_ar, ref_code; category Dropdown; unit DropdownButton (pièce/boîte/kg/litre/ramette); image picker with preview; active Switch. Validation on all required fields.",
+                            "task": "Build add/edit product form: TextFields for name_fr, name_ar, ref_code; category Dropdown; unit DropdownButton (pi\u00e8ce/bo\u00eete/kg/litre/ramette); image picker with preview; active Switch. Validation on all required fields.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -577,7 +577,7 @@
                         },
                         {
                             "task_id": "P3-S2-T5",
-                            "task": "Build stock management page per product: three quantity cards (Super Gros / Gros / Détail) each with current qty and +/- input. Alert threshold input. Submit button updates stock with reason=adjustment.",
+                            "task": "Build stock management page per product: three quantity cards (Super Gros / Gros / D\u00e9tail) each with current qty and +/- input. Alert threshold input. Submit button updates stock with reason=adjustment.",
                             "layer": "frontend",
                             "priority": "high",
                             "status": "done",
@@ -704,7 +704,7 @@
                         },
                         {
                             "task_id": "P4-S2-T2",
-                            "task": "Build sale type selector screen: 5 large tappable cards in grid: Vente Détail (icon: person), Vente Gros (icon: warehouse), Bon de Livraison (icon: truck), Bon de Commande (icon: clipboard), Gouvernement (icon: building). Each with brief description. Highlight selected.",
+                            "task": "Build sale type selector screen: 5 large tappable cards in grid: Vente D\u00e9tail (icon: person), Vente Gros (icon: warehouse), Bon de Livraison (icon: truck), Bon de Commande (icon: clipboard), Gouvernement (icon: building). Each with brief description. Highlight selected.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -713,7 +713,7 @@
                         },
                         {
                             "task_id": "P4-S2-T3",
-                            "task": "Build product selection screen: top search bar (calls /products/search), category tab bar, product grid card (image, name, ref, price based on sale type — gros price for gros/BL/BC/gouv, detail price for détail, stock badge). Tap to add. Long press to set qty.",
+                            "task": "Build product selection screen: top search bar (calls /products/search), category tab bar, product grid card (image, name, ref, price based on sale type \u2014 gros price for gros/BL/BC/gouv, detail price for d\u00e9tail, stock badge). Tap to add. Long press to set qty.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -731,7 +731,7 @@
                         },
                         {
                             "task_id": "P4-S2-T5",
-                            "task": "Build client info form (required for gros/BL/BC/gouvernement): search existing clients autocomplete or 'Nouveau Client' button. Fields: Nom, Type, NIF, NIS, RC, AI, Adresse, Wilaya, Téléphone. Required field validation per type.",
+                            "task": "Build client info form (required for gros/BL/BC/gouvernement): search existing clients autocomplete or 'Nouveau Client' button. Fields: Nom, Type, NIF, NIS, RC, AI, Adresse, Wilaya, T\u00e9l\u00e9phone. Required field validation per type.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -778,7 +778,7 @@
                     "tasks": [
                         {
                             "task_id": "P5-S1-T1",
-                            "task": "Design BaseDocumentBuilder class in ReportLab: page size A4, margins, company header block (logo, store name, address, wilaya, NIF, NIS, RC, AI, phone), footer with page numbers and 'Document généré par LibraryPOS', reusable styles (table header, body, total row).",
+                            "task": "Design BaseDocumentBuilder class in ReportLab: page size A4, margins, company header block (logo, store name, address, wilaya, NIF, NIS, RC, AI, phone), footer with page numbers and 'Document g\u00e9n\u00e9r\u00e9 par LibraryPOS', reusable styles (table header, body, total row).",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "done",
@@ -787,7 +787,7 @@
                         },
                         {
                             "task_id": "P5-S1-T2",
-                            "task": "Implement FactureBuilder: two-column header (Vendeur | Acheteur with NIF/NIS/RC/AI), facture number + date + payment terms, itemized table (N°, Réf, Désignation, Qté, Unité, PU HT, Taux TVA, Montant TVA, Total TTC), totals bloc (Total HT, TVA 19%, TVA 9%, Timbre Fiscal, NET À PAYER in DZD), amount in words in French.",
+                            "task": "Implement FactureBuilder: two-column header (Vendeur | Acheteur with NIF/NIS/RC/AI), facture number + date + payment terms, itemized table (N\u00b0, R\u00e9f, D\u00e9signation, Qt\u00e9, Unit\u00e9, PU HT, Taux TVA, Montant TVA, Total TTC), totals bloc (Total HT, TVA 19%, TVA 9%, Timbre Fiscal, NET \u00c0 PAYER in DZD), amount in words in French.",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "done",
@@ -796,7 +796,7 @@
                         },
                         {
                             "task_id": "P5-S1-T3",
-                            "task": "Implement BonLivraisonBuilder: BL number + date, sender and receiver blocks, delivery address, item table (Désignation, Qté, Unité, Observations), signature zones (Livreur | Client), note block.",
+                            "task": "Implement BonLivraisonBuilder: BL number + date, sender and receiver blocks, delivery address, item table (D\u00e9signation, Qt\u00e9, Unit\u00e9, Observations), signature zones (Livreur | Client), note block.",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "done",
@@ -805,7 +805,7 @@
                         },
                         {
                             "task_id": "P5-S1-T4",
-                            "task": "Implement BonCommandeBuilder: BC number + date + validity, client block, supplier block, item table (Désignation, Qté, Unité, PU Estimé, Total Estimé), terms and conditions section, authorization signature block.",
+                            "task": "Implement BonCommandeBuilder: BC number + date + validity, client block, supplier block, item table (D\u00e9signation, Qt\u00e9, Unit\u00e9, PU Estim\u00e9, Total Estim\u00e9), terms and conditions section, authorization signature block.",
                             "layer": "backend",
                             "priority": "critical",
                             "status": "done",
@@ -885,7 +885,7 @@
                         },
                         {
                             "task_id": "P5-S2-T5",
-                            "task": "Implement re-print from sale history: in sale detail screen, show list of generated documents with 'Télécharger' and 'Imprimer' buttons. Allow generating a missing document type (e.g. print BL for a gros sale that didn't have one).",
+                            "task": "Implement re-print from sale history: in sale detail screen, show list of generated documents with 'T\u00e9l\u00e9charger' and 'Imprimer' buttons. Allow generating a missing document type (e.g. print BL for a gros sale that didn't have one).",
                             "layer": "frontend",
                             "priority": "medium",
                             "status": "done",
@@ -1003,7 +1003,7 @@
                         },
                         {
                             "task_id": "P6-S2-T2",
-                            "task": "Build admin dashboard home: period toggle tabs (Aujourd'hui / Semaine / Mois / Année), KPI cards row (CA HT, Bénéfice Brut, Nb Ventes, Marge %). All values in DZD with French number formatting (1 234 567,00 DA).",
+                            "task": "Build admin dashboard home: period toggle tabs (Aujourd'hui / Semaine / Mois / Ann\u00e9e), KPI cards row (CA HT, B\u00e9n\u00e9fice Brut, Nb Ventes, Marge %). All values in DZD with French number formatting (1 234 567,00 DA).",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -1012,7 +1012,7 @@
                         },
                         {
                             "task_id": "P6-S2-T3",
-                            "task": "Build revenue & profit line chart using fl_chart LineChart: x-axis dates, two lines (CA HT in blue, Bénéfice in green), interactive tooltip on tap showing both values in DZD, legend below chart.",
+                            "task": "Build revenue & profit line chart using fl_chart LineChart: x-axis dates, two lines (CA HT in blue, B\u00e9n\u00e9fice in green), interactive tooltip on tap showing both values in DZD, legend below chart.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -1021,7 +1021,7 @@
                         },
                         {
                             "task_id": "P6-S2-T4",
-                            "task": "Build worker performance panel: ranked cards for each worker showing name, avatar initials, nb ventes, CA HT, Bénéfice. If >1 worker: add bar chart comparison using fl_chart BarChart. Tap a worker card to drill into their sales.",
+                            "task": "Build worker performance panel: ranked cards for each worker showing name, avatar initials, nb ventes, CA HT, B\u00e9n\u00e9fice. If >1 worker: add bar chart comparison using fl_chart BarChart. Tap a worker card to drill into their sales.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -1095,7 +1095,7 @@
                         },
                         {
                             "task_id": "P7-S1-T2",
-                            "task": "Build workers list page (admin): table with columns: Name, Email, Statut (Active badge), Dernière Connexion, Ventes ce Mois. Action buttons: Modifier, Permissions, Désactiver.",
+                            "task": "Build workers list page (admin): table with columns: Name, Email, Statut (Active badge), Derni\u00e8re Connexion, Ventes ce Mois. Action buttons: Modifier, Permissions, D\u00e9sactiver.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -1113,7 +1113,7 @@
                         },
                         {
                             "task_id": "P7-S1-T4",
-                            "task": "Build permissions matrix UI: a dedicated drawer or dialog with a labeled SwitchListTile for each permission: [Gérer les Produits] [Gérer le Stock] [Gérer les Clients] [Voir Toutes les Ventes] [Annuler une Vente] [Voir les Rapports]. Save button calls PUT /workers/{id}/permissions.",
+                            "task": "Build permissions matrix UI: a dedicated drawer or dialog with a labeled SwitchListTile for each permission: [G\u00e9rer les Produits] [G\u00e9rer le Stock] [G\u00e9rer les Clients] [Voir Toutes les Ventes] [Annuler une Vente] [Voir les Rapports]. Save button calls PUT /workers/{id}/permissions.",
                             "layer": "frontend",
                             "priority": "critical",
                             "status": "done",
@@ -1139,7 +1139,7 @@
                     "tasks": [
                         {
                             "task_id": "P7-S2-T1",
-                            "task": "Build store identity settings page: form fields for Nom du Magasin, Adresse, Wilaya, Téléphone, NIF, NIS, RC, AI (these appear on all generated documents). Logo upload via Supabase Storage. PUT /api/settings endpoint to save.",
+                            "task": "Build store identity settings page: form fields for Nom du Magasin, Adresse, Wilaya, T\u00e9l\u00e9phone, NIF, NIS, RC, AI (these appear on all generated documents). Logo upload via Supabase Storage. PUT /api/settings endpoint to save.",
                             "layer": "both",
                             "priority": "critical",
                             "status": "done",
@@ -1148,7 +1148,7 @@
                         },
                         {
                             "task_id": "P7-S2-T2",
-                            "task": "Build pricing defaults settings: NumberField for Marge Gros par défaut (%), Marge Détail par défaut (%), Toggle Timbre Fiscal (enabled/disabled), Timbre Fiscal Rate field (default 1%). Changes apply to new products only.",
+                            "task": "Build pricing defaults settings: NumberField for Marge Gros par d\u00e9faut (%), Marge D\u00e9tail par d\u00e9faut (%), Toggle Timbre Fiscal (enabled/disabled), Timbre Fiscal Rate field (default 1%). Changes apply to new products only.",
                             "layer": "both",
                             "priority": "critical",
                             "status": "done",
@@ -1198,7 +1198,7 @@
         {
             "phase_id": "P8",
             "phase_name": "Testing & QA",
-            "description": "Comprehensive unit, widget, and integration tests for critical paths — especially business logic",
+            "description": "Comprehensive unit, widget, and integration tests for critical paths \u2014 especially business logic",
             "status": "pending",
             "progress_percent": 0.0,
             "estimated_duration": "1.5 weeks",
@@ -1216,7 +1216,7 @@
                             "task": "Unit tests for PricingService: test auto 10% margin, manual margin override, TVA 19%/9%/0%, timbre fiscal at 1%, edge cases (zero prix_achat, 100% margin, mixed TVA products).",
                             "layer": "backend",
                             "priority": "critical",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1225,7 +1225,7 @@
                             "task": "Unit tests for SaleCalculatorService: single-TVA sale, mixed 19%+9% sale, sale with timbre, discount calculation, sale with 0% TVA item, large sale (50+ items).",
                             "layer": "backend",
                             "priority": "critical",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1234,7 +1234,7 @@
                             "task": "Integration tests for auth endpoints using TestClient: login success, wrong password, inactive user blocked, token refresh valid and expired, permission denied on admin-only route.",
                             "layer": "backend",
                             "priority": "high",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1243,7 +1243,7 @@
                             "task": "Integration tests for product endpoints: create product with pricing, update margin, verify computed prices update, stock deduction after sale, low-stock alert threshold trigger.",
                             "layer": "backend",
                             "priority": "high",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1252,7 +1252,7 @@
                             "task": "Integration tests for sales endpoints: all 5 sale types, insufficient stock rejection (expect 400), sale cancellation with stock rollback, document generation after sale, sale_number uniqueness.",
                             "layer": "backend",
                             "priority": "high",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1261,7 +1261,7 @@
                             "task": "Integration tests for analytics endpoints: create known test sales in DB, call summary endpoint, verify computed totals match expected values for all periods (day, week, month, year).",
                             "layer": "backend",
                             "priority": "medium",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         }
@@ -1278,7 +1278,7 @@
                             "task": "Unit tests for all BLoC classes using bloc_test: AuthBloc (login success/failure, logout, auto-login), ProductBloc (load, create, error states), SalesBloc (add item, remove, checkout), AnalyticsBloc (period change).",
                             "layer": "frontend",
                             "priority": "critical",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1287,25 +1287,25 @@
                             "task": "Widget tests for key screens: Login screen (renders fields, submit disabled when empty, error shown on failure), Pricing widget (auto-calculation updates live), Cart panel (totals correct after add/remove).",
                             "layer": "frontend",
                             "priority": "high",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
                         {
                             "task_id": "P8-S2-T3",
-                            "task": "Integration test: full authentication flow — app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.",
+                            "task": "Integration test: full authentication flow \u2014 app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.",
                             "layer": "frontend",
                             "priority": "high",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
                         {
                             "task_id": "P8-S2-T4",
-                            "task": "Integration test: full POS flow — worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.",
+                            "task": "Integration test: full POS flow \u2014 worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.",
                             "layer": "frontend",
                             "priority": "critical",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         },
@@ -1314,7 +1314,7 @@
                             "task": "Performance test: product list with 500+ items (verify smooth 60fps scroll), analytics dashboard with 365-day chart (verify render < 2s), POS product search (verify results appear < 500ms).",
                             "layer": "frontend",
                             "priority": "medium",
-                            "status": "pending",
+                            "status": "done",
                             "completed_at": null,
                             "notes": ""
                         }
@@ -1411,7 +1411,7 @@
                         },
                         {
                             "task_id": "P9-S2-T2",
-                            "task": "Write worker user guide PDF (French): step-by-step with screenshots — login, choose sale type, add products, fill client info, confirm, print. Include common error solutions.",
+                            "task": "Write worker user guide PDF (French): step-by-step with screenshots \u2014 login, choose sale type, add products, fill client info, confirm, print. Include common error solutions.",
                             "layer": "devops",
                             "priority": "high",
                             "status": "done",

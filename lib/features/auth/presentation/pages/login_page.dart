@@ -331,11 +331,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
       child: Row(
         children: [
-          Expanded(child: _buildRoleTab('auth.admin'.tr(), UserRole.admin, Icons.admin_panel_settings)),
+          _buildRoleTab('auth.admin'.tr(), UserRole.admin, Icons.admin_panel_settings),
           const SizedBox(width: 8),
-          Expanded(child: _buildRoleTab('auth.staff'.tr(), UserRole.staff, Icons.manage_accounts)),
+          _buildRoleTab('auth.staff'.tr(), UserRole.staff, Icons.manage_accounts),
           const SizedBox(width: 8),
-          Expanded(child: _buildRoleTab('auth.worker'.tr(), UserRole.worker, Icons.person)),
+          _buildRoleTab('auth.worker'.tr(), UserRole.worker, Icons.person),
         ],
       ),
     );

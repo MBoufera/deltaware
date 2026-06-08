@@ -60,7 +60,7 @@ Phase P3: Product & Category Management
     - [ ] P3-S1-T7: Build GET /api/products/search?q={query}: full-text search on name_fr, name_ar, ref_code using PostgreSQL ILIKE or full-text search. Return top 20 results with minimal fields for fast POS lookup.
 
   Sprint P3-S2: Flutter Admin Product Pages
-    - [ ] P3-S2-T1: Create ProductBloc: Events(LoadProducts{filters}, LoadSingleProduct, CreateProduct, UpdateProduct, DeleteProduct, UpdatePricing, UpdateStock), States(ProductInitial, ProductLoading, ProductsLoaded{list, pagination}, ProductError{message})
+    - [x] P3-S2-T1: Create ProductBloc: Events(LoadProducts{filters}, LoadSingleProduct, CreateProduct, UpdateProduct, DeleteProduct, UpdatePricing, UpdateStock), States(ProductInitial, ProductLoading, ProductsLoaded{list, pagination}, ProductError{message})
     - [x] P3-S2-T2: Build product list page (admin): searchable DataTable or ListView, category filter chips at top, columns: image, ref, name, category, prix_vente_gros_ttc, stock_qty, status badge. Action menu: edit, update stock, delete.
     - [x] P3-S2-T3: Build add/edit product form: TextFields for name_fr, name_ar, ref_code; category Dropdown; unit DropdownButton (pièce/boîte/kg/litre/ramette); image picker with preview; active Switch. Validation on all required fields.
     - [x] P3-S2-T4: Build pricing widget: NumberField for prix_achat_super_gros; toggle switch 'Marge Auto (10%)' vs 'Marge Manuelle'; sliders or fields for marge_gros_pct and marge_detail_pct; live preview card showing: prix_vente_gros HT, prix_vente_gros TTC, prix_vente_detail HT, prix_vente_detail TTC, TVA breakdown in DZD.
@@ -153,19 +153,19 @@ Phase P7: Admin Control Panel
 Phase P8: Testing & QA
 ========================================
   Sprint P8-S1: Backend Testing
-    - [ ] P8-S1-T1: Unit tests for PricingService: test auto 10% margin, manual margin override, TVA 19%/9%/0%, timbre fiscal at 1%, edge cases (zero prix_achat, 100% margin, mixed TVA products).
-    - [ ] P8-S1-T2: Unit tests for SaleCalculatorService: single-TVA sale, mixed 19%+9% sale, sale with timbre, discount calculation, sale with 0% TVA item, large sale (50+ items).
-    - [ ] P8-S1-T3: Integration tests for auth endpoints using TestClient: login success, wrong password, inactive user blocked, token refresh valid and expired, permission denied on admin-only route.
-    - [ ] P8-S1-T4: Integration tests for product endpoints: create product with pricing, update margin, verify computed prices update, stock deduction after sale, low-stock alert threshold trigger.
-    - [ ] P8-S1-T5: Integration tests for sales endpoints: all 5 sale types, insufficient stock rejection (expect 400), sale cancellation with stock rollback, document generation after sale, sale_number uniqueness.
-    - [ ] P8-S1-T6: Integration tests for analytics endpoints: create known test sales in DB, call summary endpoint, verify computed totals match expected values for all periods (day, week, month, year).
+    - [x] P8-S1-T1: Unit tests for PricingService: test auto 10% margin, manual margin override, TVA 19%/9%/0%, timbre fiscal at 1%, edge cases (zero prix_achat, 100% margin, mixed TVA products).
+    - [x] P8-S1-T2: Unit tests for SaleCalculatorService: single-TVA sale, mixed 19%+9% sale, sale with timbre, discount calculation, sale with 0% TVA item, large sale (50+ items).
+    - [x] P8-S1-T3: Integration tests for auth endpoints using TestClient: login success, wrong password, inactive user blocked, token refresh valid and expired, permission denied on admin-only route.
+    - [x] P8-S1-T4: Integration tests for product endpoints: create product with pricing, update margin, verify computed prices update, stock deduction after sale, low-stock alert threshold trigger.
+    - [x] P8-S1-T5: Integration tests for sales endpoints: all 5 sale types, insufficient stock rejection (expect 400), sale cancellation with stock rollback, document generation after sale, sale_number uniqueness.
+    - [x] P8-S1-T6: Integration tests for analytics endpoints: create known test sales in DB, call summary endpoint, verify computed totals match expected values for all periods (day, week, month, year).
 
   Sprint P8-S2: Flutter Testing
-    - [ ] P8-S2-T1: Unit tests for all BLoC classes using bloc_test: AuthBloc (login success/failure, logout, auto-login), ProductBloc (load, create, error states), SalesBloc (add item, remove, checkout), AnalyticsBloc (period change).
-    - [ ] P8-S2-T2: Widget tests for key screens: Login screen (renders fields, submit disabled when empty, error shown on failure), Pricing widget (auto-calculation updates live), Cart panel (totals correct after add/remove).
-    - [ ] P8-S2-T3: Integration test: full authentication flow — app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.
-    - [ ] P8-S2-T4: Integration test: full POS flow — worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.
-    - [ ] P8-S2-T5: Performance test: product list with 500+ items (verify smooth 60fps scroll), analytics dashboard with 365-day chart (verify render < 2s), POS product search (verify results appear < 500ms).
+    - [x] P8-S2-T1: Unit tests for all BLoC classes using bloc_test: AuthBloc (login success/failure, logout, auto-login), ProductBloc (load, create, error states), SalesBloc (add item, remove, checkout), AnalyticsBloc (period change).
+    - [x] P8-S2-T2: Widget tests for key screens: Login screen (renders fields, submit disabled when empty, error shown on failure), Pricing widget (auto-calculation updates live), Cart panel (totals correct after add/remove).
+    - [x] P8-S2-T3: Integration test: full authentication flow — app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.
+    - [x] P8-S2-T4: Integration test: full POS flow — worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.
+    - [x] P8-S2-T5: Performance test: product list with 500+ items (verify smooth 60fps scroll), analytics dashboard with 365-day chart (verify render < 2s), POS product search (verify results appear < 500ms).
 
 
 Phase P9: Deployment & Launch

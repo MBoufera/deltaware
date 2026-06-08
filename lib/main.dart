@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/admin/presentation/bloc/sales/sales_bloc.dart';
+import 'features/admin/presentation/bloc/analytics/analytics_bloc.dart';
+import 'features/admin/presentation/bloc/analytics/analytics_event.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'features/admin/presentation/pages/user_management_page.dart';
@@ -20,6 +23,7 @@ import 'features/admin/presentation/pages/suppliers_page.dart';
 import 'features/admin/presentation/pages/expenses_page.dart';
 import 'features/admin/presentation/pages/returns_page.dart';
 import 'features/admin/presentation/pages/analytics_page.dart';
+import 'features/admin/presentation/pages/document_history_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
 
@@ -96,6 +100,7 @@ final GoRouter _router = GoRouter(
             ),
             GoRoute(path: 'users', builder: (context, state) => const UserManagementPage()),
             GoRoute(path: 'roles', builder: (context, state) => const RoleManagementPage()),
+            GoRoute(path: 'documents', builder: (context, state) => const DocumentHistoryPage()),
           ],
         ),
       ],
@@ -124,8 +129,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc()..add(AppStarted()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => AuthBloc()..add(AppStarted())),
+        BlocProvider(create: (context) => SalesBloc(Supabase.instance.client)),
+        BlocProvider(create: (context) => AnalyticsBloc(Supabase.instance.client)..add(const LoadDashboard())),
+      ],
       child: MaterialApp.router(
         localizationsDelegates: context.localizationDelegates,
         supportedLocales: context.supportedLocales,

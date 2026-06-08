@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/sales/sales_bloc.dart';
+import '../bloc/sales/sales_event.dart';
+import '../bloc/sales/sales_state.dart';
 import '../widgets/client_selection_dialog.dart';
 import 'document_viewer_page.dart';
 
@@ -12,173 +14,71 @@ class PosPage extends StatefulWidget {
 }
 
 class _PosPageState extends State<PosPage> {
-  final _supabase = Supabase.instance.client;
-  
-  bool _isLoading = true;
-  List<dynamic> _products = [];
-  List<dynamic> _filteredProducts = [];
-  
-  String _saleType = 'detail'; // detail, gros, bon_livraison, bon_commande, gouvernement
-  final Map<String, int> _cart = {}; // product_id -> quantity
-  bool _timbreFiscalEnabled = false;
-  Map<String, dynamic>? _selectedClient;
-
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
+    context.read<SalesBloc>().add(LoadProducts());
   }
 
-  Future<void> _fetchProducts() async {
-    try {
-      final data = await _supabase
-          .from('products')
-          .select('id, name_fr, ref_code, stock(qty_super_gros, qty_gros, qty_detail), product_pricing(prix_vente_gros_ht, prix_vente_detail_ht, tva_rate), categories(name_fr)')
-          .eq('is_active', true);
-      
-      if (mounted) {
-        setState(() {
-          _products = data;
-          _filteredProducts = List.from(data);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
-  void _filterProducts(String query) {
-    setState(() {
-      _filteredProducts = _products.where((p) {
-        final name = (p['name_fr'] ?? '').toLowerCase();
-        final ref = (p['ref_code'] ?? '').toLowerCase();
-        final q = query.toLowerCase();
-        return name.contains(q) || ref.contains(q);
-      }).toList();
-    });
-  }
-
-  double _getPriceForType(Map<String, dynamic> product) {
-    final pricing = product['product_pricing'];
-    if (pricing == null) return 0.0;
-    
-    if (_saleType == 'detail') {
-      return (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0;
-    } else {
-      return (pricing['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0;
-    }
-  }
-
-  double _getTvaRate(Map<String, dynamic> product) {
-    final pricing = product['product_pricing'];
-    return (pricing?['tva_rate'] as num?)?.toDouble() ?? 19.0;
-  }
-
-  double _getStockForType(Map<String, dynamic> product) {
-    final stock = product['stock'];
-    if (stock == null) return 0.0;
-    
-    if (_saleType == 'detail') {
-      return (stock['qty_detail'] as num?)?.toDouble() ?? 0.0;
-    } else {
-      return (stock['qty_gros'] as num?)?.toDouble() ?? 0.0;
-    }
-  }
-
-  void _addToCart(Map<String, dynamic> product) {
-    final id = product['id'] as String;
-    setState(() {
-      _cart[id] = (_cart[id] ?? 0) + 1;
-    });
-  }
-
-  void _updateCartQty(String id, int delta) {
-    setState(() {
-      int newQty = (_cart[id] ?? 0) + delta;
-      if (newQty <= 0) {
-        _cart.remove(id);
-      } else {
-        _cart[id] = newQty;
-      }
-    });
-  }
-
-  // --- Calculations ---
-  double get _totalHt {
-    double total = 0;
-    _cart.forEach((id, qty) {
-      final p = _products.firstWhere((p) => p['id'] == id);
-      total += _getPriceForType(p) * qty;
-    });
-    return total;
-  }
-
-  Map<double, double> get _tvaBreakdown {
-    Map<double, double> breakdown = {};
-    _cart.forEach((id, qty) {
-      final p = _products.firstWhere((p) => p['id'] == id);
-      double rate = _getTvaRate(p);
-      double itemHt = _getPriceForType(p) * qty;
-      double itemTva = itemHt * (rate / 100);
-      breakdown[rate] = (breakdown[rate] ?? 0) + itemTva;
-    });
-    return breakdown;
-  }
-
-  double get _totalTva => _tvaBreakdown.values.fold(0, (a, b) => a + b);
-  
-  double get _subtotalTtc => _totalHt + _totalTva;
-  
-  double get _timbreFiscal => _timbreFiscalEnabled ? (_subtotalTtc * 0.01) : 0;
-  
-  double get _grandTotalTtc => _subtotalTtc + _timbreFiscal;
-
-  // --- Layout ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
-      body: Row(
-        children: [
-          // Left Pane: Products
-          Expanded(
-            flex: 6,
-            child: Column(
-              children: [
-                _buildTopBar(),
-                Expanded(child: _buildProductGrid()),
-              ],
-            ),
-          ),
-          // Right Pane: Cart
-          Expanded(
-            flex: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(-5, 0),
-                  )
+    return BlocListener<SalesBloc, SalesState>(
+      listener: (context, state) {
+        if (state is SalesError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${state.message}'), backgroundColor: Colors.red),
+          );
+        } else if (state is SalesSuccess) {
+          _showSuccessDialog(context, state);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F6),
+        body: BlocBuilder<SalesBloc, SalesState>(
+          builder: (context, state) {
+            if (state is SalesInitial || state is SalesLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is SalesUpdated) {
+              return Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      children: [
+                        _buildTopBar(state),
+                        Expanded(child: _buildProductGrid(state)),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(-5, 0),
+                          )
+                        ],
+                      ),
+                      child: _buildCart(state),
+                    ),
+                  ),
                 ],
-              ),
-              child: _buildCart(),
-            ),
-          ),
-        ],
+              );
+            }
+            return const Center(child: Text('Unexpected State'));
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(SalesUpdated state) {
     return Container(
       padding: const EdgeInsets.all(16),
       color: Colors.white,
@@ -188,17 +88,15 @@ class _PosPageState extends State<PosPage> {
             scrollDirection: Axis.horizontal,
             child: ToggleButtons(
               isSelected: [
-                _saleType == 'detail',
-                _saleType == 'gros',
-                _saleType == 'bon_livraison',
-                _saleType == 'bon_commande',
-                _saleType == 'gouvernement',
+                state.saleType == 'detail',
+                state.saleType == 'gros',
+                state.saleType == 'bon_livraison',
+                state.saleType == 'bon_commande',
+                state.saleType == 'gouvernement',
               ],
               onPressed: (index) {
-                setState(() {
-                  const types = ['detail', 'gros', 'bon_livraison', 'bon_commande', 'gouvernement'];
-                  _saleType = types[index];
-                });
+                const types = ['detail', 'gros', 'bon_livraison', 'bon_commande', 'gouvernement'];
+                context.read<SalesBloc>().add(SelectSaleType(types[index]));
               },
               borderRadius: BorderRadius.circular(8),
               selectedColor: Colors.white,
@@ -225,16 +123,14 @@ class _PosPageState extends State<PosPage> {
               filled: true,
               fillColor: Colors.grey.shade100,
             ),
-            onChanged: _filterProducts,
+            onChanged: (query) => context.read<SalesBloc>().add(SearchProducts(query)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductGrid() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    
+  Widget _buildProductGrid(SalesUpdated state) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -243,14 +139,14 @@ class _PosPageState extends State<PosPage> {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: _filteredProducts.length,
+      itemCount: state.filteredProducts.length,
       itemBuilder: (context, index) {
-        final p = _filteredProducts[index];
-        final price = _getPriceForType(p);
-        final stock = _getStockForType(p);
+        final p = state.filteredProducts[index];
+        final price = _getPriceForType(p, state.saleType);
+        final stock = _getStockForType(p, state.saleType);
         
         return InkWell(
-          onTap: () => _addToCart(p),
+          onTap: () => context.read<SalesBloc>().add(AddItemToCart(p)),
           child: Card(
             elevation: 2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -287,7 +183,7 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  Widget _buildCart() {
+  Widget _buildCart(SalesUpdated state) {
     return Column(
       children: [
         Container(
@@ -300,16 +196,16 @@ class _PosPageState extends State<PosPage> {
           ),
         ),
         Expanded(
-          child: _cart.isEmpty
+          child: state.cart.isEmpty
               ? const Center(child: Text('Cart is empty', style: TextStyle(color: Colors.grey)))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _cart.length,
+                  itemCount: state.cart.length,
                   itemBuilder: (context, index) {
-                    final id = _cart.keys.elementAt(index);
-                    final qty = _cart[id]!;
-                    final p = _products.firstWhere((p) => p['id'] == id);
-                    final price = _getPriceForType(p);
+                    final id = state.cart.keys.elementAt(index);
+                    final qty = state.cart[id]!;
+                    final p = state.products.firstWhere((p) => p['id'] == id);
+                    final price = _getPriceForType(p, state.saleType);
                     final total = price * qty;
                     
                     return Card(
@@ -329,9 +225,9 @@ class _PosPageState extends State<PosPage> {
                             ),
                             Row(
                               children: [
-                                IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () => _updateCartQty(id, -1)),
+                                IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1))),
                                 Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => _updateCartQty(id, 1)),
+                                IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1))),
                               ],
                             ),
                             SizedBox(
@@ -345,12 +241,12 @@ class _PosPageState extends State<PosPage> {
                   },
                 ),
         ),
-        _buildCartFooter(),
+        _buildCartFooter(state),
       ],
     );
   }
 
-  Widget _buildCartFooter() {
+  Widget _buildCartFooter(SalesUpdated state) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -365,27 +261,27 @@ class _PosPageState extends State<PosPage> {
               const Text('Client:'),
               TextButton.icon(
                 icon: const Icon(Icons.person_add),
-                label: Text(_selectedClient != null ? _selectedClient!['name'] : 'Select Client'),
-                onPressed: _showClientDialog,
+                label: Text(state.selectedClient != null ? state.selectedClient!['name'] : 'Select Client'),
+                onPressed: () => _showClientDialog(state.saleType),
               )
             ],
           ),
           SwitchListTile(
             title: const Text('Timbre Fiscal (1%)'),
-            value: _timbreFiscalEnabled,
-            onChanged: (v) => setState(() => _timbreFiscalEnabled = v),
+            value: state.timbreFiscalEnabled,
+            onChanged: (v) => context.read<SalesBloc>().add(ToggleTimbreFiscal(v)),
             contentPadding: EdgeInsets.zero,
           ),
           const Divider(),
-          _buildSummaryRow('Total HT', _totalHt),
-          ..._tvaBreakdown.entries.map((e) => _buildSummaryRow('TVA ${e.key}%', e.value)),
-          if (_timbreFiscalEnabled) _buildSummaryRow('Timbre', _timbreFiscal),
+          _buildSummaryRow('Total HT', state.totalHt),
+          ...state.tvaBreakdown.entries.map((e) => _buildSummaryRow('TVA ${e.key}%', e.value)),
+          if (state.timbreFiscalEnabled) _buildSummaryRow('Timbre', state.timbreFiscal),
           const Divider(thickness: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('TOTAL TTC', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              Text('${_grandTotalTtc.toStringAsFixed(2)} DZD', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.green)),
+              Text('${state.grandTotalTtc.toStringAsFixed(2)} DZD', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.green)),
             ],
           ),
           const SizedBox(height: 24),
@@ -393,13 +289,17 @@ class _PosPageState extends State<PosPage> {
             width: double.infinity,
             height: 60,
             child: ElevatedButton(
-              onPressed: _cart.isEmpty ? null : _submitSale,
+              onPressed: (state.cart.isEmpty || state is SalesSubmitting) 
+                  ? null 
+                  : () => context.read<SalesBloc>().add(SubmitSale()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF203A43),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('CONFIRM SALE', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: state is SalesSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('CONFIRM SALE', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           )
         ],
@@ -420,104 +320,67 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  Future<void> _showClientDialog() async {
+  Future<void> _showClientDialog(String saleType) async {
     final client = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => ClientSelectionDialog(saleType: _saleType),
+      builder: (ctx) => ClientSelectionDialog(saleType: saleType),
     );
 
-    if (client != null) {
-      setState(() {
-        _selectedClient = client;
-      });
+    if (client != null && mounted) {
+      context.read<SalesBloc>().add(SetClient(client));
     }
   }
 
-  Future<void> _submitSale() async {
-    if (['bon_livraison', 'bon_commande', 'gros', 'gouvernement'].contains(_saleType) && _selectedClient == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Client is required for this sale type')));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final user = _supabase.auth.currentUser;
-      
-      List<Map<String, dynamic>> items = [];
-      _cart.forEach((id, qty) {
-        final p = _products.firstWhere((p) => p['id'] == id);
-        final priceHt = _getPriceForType(p);
-        final tvaRate = _getTvaRate(p);
-        final itemTva = priceHt * (tvaRate / 100);
-        final priceTtc = priceHt + itemTva;
-        
-        items.add({
-          'product_id': id,
-          'quantity': qty,
-          'unit_price_ht': priceHt,
-          'tva_rate': tvaRate,
-          'unit_price_ttc': priceTtc,
-          'total_ht': priceHt * qty,
-          'total_ttc': priceTtc * qty,
-          'discount_percent': 0,
-        });
-      });
-
-      final payload = {
-        'sale': {
-          'sale_type': _saleType,
-          'worker_id': user?.id,
-          'client_id': _selectedClient?['id'],
-          'total_ht': _totalHt,
-          'tva_amount': _totalTva,
-          'timbre_fiscal': _timbreFiscal,
-          'total_ttc': _grandTotalTtc,
-          'notes': 'POS Sale'
-        },
-        'items': items
-      };
-
-      final response = await _supabase.rpc('process_pos_sale', params: {'payload': payload});
-
-      if (mounted) {
-        setState(() {
-          _cart.clear();
-          _selectedClient = null;
-          _isLoading = false;
-        });
-        
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Sale Successful!'),
-            content: Text('Sale Reference: ${response['sale_number']}\nTotal: ${_grandTotalTtc.toStringAsFixed(2)} DZD'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => DocumentViewerPage(saleId: response['sale_id']),
-                  ));
-                },
-                child: const Text('Print Document'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('New Sale'),
-              ),
-            ],
+  void _showSuccessDialog(BuildContext context, SalesSuccess state) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sale Successful!'),
+        content: Text('Sale Reference: ${state.response['sale_number']}\nTotal: ${state.totalTtc.toStringAsFixed(2)} DZD'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.read<SalesBloc>().add(ResetSale());
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => DocumentViewerPage(saleId: state.response['sale_id']),
+              ));
+            },
+            child: const Text('Print Document'),
           ),
-        );
-        
-        _fetchProducts(); // Refresh stock
-      }
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.read<SalesBloc>().add(ResetSale());
+            },
+            child: const Text('New Sale'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaction Error: $e'), backgroundColor: Colors.red));
-      }
+  // --- Helpers ---
+  double _getPriceForType(Map<String, dynamic> product, String saleType) {
+    final pricing = product['product_pricing'];
+    if (pricing == null) return 0.0;
+    
+    if (saleType == 'detail') {
+      return (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0;
+    } else {
+      return (pricing['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0;
+    }
+  }
+
+  double _getStockForType(Map<String, dynamic> product, String saleType) {
+    final stock = product['stock'];
+    if (stock == null) return 0.0;
+    
+    if (saleType == 'detail') {
+      return (stock['qty_detail'] as num?)?.toDouble() ?? 0.0;
+    } else {
+      return (stock['qty_gros'] as num?)?.toDouble() ?? 0.0;
     }
   }
 }

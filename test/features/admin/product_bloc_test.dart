@@ -8,8 +8,8 @@ import 'package:deltaware/features/admin/presentation/bloc/product/product_state
 
 class MockSupabaseClient extends Mock implements SupabaseClient {}
 class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
-class MockPostgrestFilterBuilder extends Mock implements PostgrestFilterBuilder<List<Map<String, dynamic>>, List<Map<String, dynamic>>, dynamic> {}
-class MockPostgrestTransformBuilder extends Mock implements PostgrestTransformBuilder<List<Map<String, dynamic>>, List<Map<String, dynamic>>, dynamic> {}
+class MockPostgrestFilterBuilder extends Mock implements PostgrestFilterBuilder<List<Map<String, dynamic>>> {}
+class MockPostgrestTransformBuilder extends Mock implements PostgrestTransformBuilder<List<Map<String, dynamic>>> {}
 
 void main() {
   group('ProductBloc', () {
@@ -81,8 +81,8 @@ void main() {
       'emits [ProductLoading, ProductOperationSuccess] when DeleteProduct is successful',
       build: () {
         when(() => mockProductsQuery.delete()).thenReturn(mockFilterBuilder);
-        when(() => mockFilterBuilder.eq(any(), any())).thenReturn(mockTransformBuilder);
-        when(() => mockTransformBuilder.then(any())).thenAnswer((invocation) async {
+        when(() => mockFilterBuilder.eq(any(), any())).thenReturn(mockFilterBuilder);
+        when(() => mockFilterBuilder.then(any())).thenAnswer((invocation) async {
           final callback = invocation.positionalArguments[0] as Future<dynamic> Function(dynamic);
           return callback([]);
         });
