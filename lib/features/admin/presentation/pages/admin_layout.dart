@@ -135,6 +135,26 @@ class _AdminSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _SidebarItem(
+                  icon: Icons.category_outlined,
+                  label: 'Categories',
+                  isActive: location.startsWith('/admin-dashboard/categories'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/categories');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
+                  icon: Icons.storage_outlined,
+                  label: 'Stock',
+                  isActive: location.startsWith('/admin-dashboard/stock'),
+                  onTap: () {
+                    if (isDrawer) Navigator.pop(context);
+                    context.go('/admin-dashboard/stock');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SidebarItem(
                   icon: Icons.local_shipping_outlined,
                   label: 'sidebar.suppliers'.tr(),
                   isActive: location.startsWith('/admin-dashboard/suppliers'),

@@ -4,9 +4,11 @@ import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseClient _supabase;
 
-  AuthBloc() : super(AuthInitial()) {
+  AuthBloc({SupabaseClient? supabase}) 
+      : _supabase = supabase ?? Supabase.instance.client,
+        super(AuthInitial()) {
     on<AppStarted>((event, emit) async {
       emit(AuthLoading());
       final session = _supabase.auth.currentSession;

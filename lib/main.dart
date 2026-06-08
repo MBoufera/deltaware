@@ -3,14 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'features/admin/presentation/pages/user_management_page.dart';
 import 'features/admin/presentation/pages/role_management_page.dart';
 import 'features/admin/presentation/pages/admin_layout.dart';
+import 'features/worker/presentation/pages/worker_layout.dart';
 import 'features/admin/presentation/pages/smart_batch_page.dart';
 import 'features/admin/presentation/pages/products_page.dart';
 import 'features/admin/presentation/pages/add_product_page.dart';
+import 'features/admin/presentation/pages/stock_management_page.dart';
+import 'features/admin/presentation/pages/category_management_page.dart';
 import 'features/admin/presentation/pages/pos_page.dart';
 import 'features/admin/presentation/pages/suppliers_page.dart';
 import 'features/admin/presentation/pages/expenses_page.dart';
@@ -39,22 +43,34 @@ Future<void> main() async {
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+final GlobalKey<NavigatorState> _adminShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'admin_shell');
+final GlobalKey<NavigatorState> _workerShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'worker_shell');
 
 final GoRouter _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isGoingToLogin = state.matchedLocation == '/';
+    
+    if (session != null && isGoingToLogin) {
+      final role = session.user.userMetadata?['role'] ?? 'admin';
+      return role == 'worker' ? '/worker-dashboard' : '/admin-dashboard';
+    }
+    
+    if (session == null && !isGoingToLogin) {
+      return '/';
+    }
+    
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',
       builder: (context, state) => const LoginPage(),
     ),
-    GoRoute(
-      path: '/dashboard',
-      builder: (context, state) => const DashboardPage(),
-    ),
     ShellRoute(
-      navigatorKey: _shellNavigatorKey,
+      navigatorKey: _adminShellNavigatorKey,
       builder: (context, state, child) {
         return AdminLayout(child: child);
       },
@@ -63,48 +79,39 @@ final GoRouter _router = GoRouter(
           path: '/admin-dashboard',
           builder: (context, state) => const AdminDashboardPage(),
           routes: [
-            GoRoute(
-              path: 'pos',
-              builder: (context, state) => const PosPage(),
-            ),
-            GoRoute(
-              path: 'suppliers',
-              builder: (context, state) => const SuppliersPage(),
-            ),
-            GoRoute(
-              path: 'expenses',
-              builder: (context, state) => const ExpensesPage(),
-            ),
-            GoRoute(
-              path: 'returns',
-              builder: (context, state) => const ReturnsPage(),
-            ),
-            GoRoute(
-              path: 'analytics',
-              builder: (context, state) => const AnalyticsPage(),
-            ),
-            GoRoute(
-              path: 'smart-batch',
-              builder: (context, state) => const SmartBatchPage(),
-            ),
+            GoRoute(path: 'pos', builder: (context, state) => const PosPage()),
+            GoRoute(path: 'suppliers', builder: (context, state) => const SuppliersPage()),
+            GoRoute(path: 'expenses', builder: (context, state) => const ExpensesPage()),
+            GoRoute(path: 'returns', builder: (context, state) => const ReturnsPage()),
+            GoRoute(path: 'analytics', builder: (context, state) => const AnalyticsPage()),
+            GoRoute(path: 'smart-batch', builder: (context, state) => const SmartBatchPage()),
+            GoRoute(path: 'stock', builder: (context, state) => const StockManagementPage()),
+            GoRoute(path: 'categories', builder: (context, state) => const CategoryManagementPage()),
             GoRoute(
               path: 'products',
               builder: (context, state) => const ProductsPage(),
               routes: [
-                GoRoute(
-                  path: 'add',
-                  builder: (context, state) => const AddProductPage(),
-                ),
+                GoRoute(path: 'add', builder: (context, state) => const AddProductPage()),
               ],
             ),
-            GoRoute(
-              path: 'users',
-              builder: (context, state) => const UserManagementPage(),
-            ),
-            GoRoute(
-              path: 'roles',
-              builder: (context, state) => const RoleManagementPage(),
-            ),
+            GoRoute(path: 'users', builder: (context, state) => const UserManagementPage()),
+            GoRoute(path: 'roles', builder: (context, state) => const RoleManagementPage()),
+          ],
+        ),
+      ],
+    ),
+    ShellRoute(
+      navigatorKey: _workerShellNavigatorKey,
+      builder: (context, state, child) {
+        return WorkerLayout(child: child);
+      },
+      routes: [
+        GoRoute(
+          path: '/worker-dashboard',
+          builder: (context, state) => const DashboardPage(),
+          routes: [
+            GoRoute(path: 'pos', builder: (context, state) => const PosPage()),
+            GoRoute(path: 'products', builder: (context, state) => const ProductsPage()),
           ],
         ),
       ],
@@ -118,7 +125,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AuthBloc(),
+      create: (context) => AuthBloc()..add(AppStarted()),
       child: MaterialApp.router(
         localizationsDelegates: context.localizationDelegates,
         supportedLocales: context.supportedLocales,

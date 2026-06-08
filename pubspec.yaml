@@ -42,6 +42,10 @@ dependencies:
   google_generative_ai: ^0.4.7
   image_picker: ^1.2.2
   easy_localization: ^3.0.8
+  postgres: ^3.5.11
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +57,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
+  msix: ^3.16.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -92,3 +99,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+msix_config:
+  display_name: Deltaware POS
+  publisher_display_name: Deltaware Inc
+  identity_name: com.deltaware.pos
+  msix_version: 1.0.0.0
+  logo_path: windows\runner\resources\app_icon.ico
+  capabilities: internetClient

@@ -169,23 +169,37 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
     try {
       final supabase = Supabase.instance.client;
 
-      final batchData = _items
-          .map(
-            (item) => {
-              'name': item.name,
-              'stock': item.quantity,
-              'purchase_price': item.purchasePrice,
-              'wholesale_margin': item.marginPercentage,
-              'retail_multiplier': 1.30, // Default retail multiplier
-              'wholesale_price': item.wholesalePrice,
-              'retail_price': item.retailPrice,
-              'tva': item.tvaPercentage,
-              'category': 'Uncategorized',
-            },
-          )
-          .toList();
+      final categoryName = 'products.uncategorized'.tr();
+      var categoryResponse = await supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+      String categoryId;
+      if (categoryResponse == null) {
+        final newCat = await supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+        categoryId = newCat['id'];
+      } else {
+        categoryId = categoryResponse['id'];
+      }
 
-      await supabase.from('products').insert(batchData);
+      for (var item in _items) {
+        final productResponse = await supabase.from('products').insert({
+          'name_fr': item.name,
+          'category_id': categoryId,
+        }).select('id').single();
+        
+        final productId = productResponse['id'];
+        
+        await supabase.from('product_pricing').insert({
+          'product_id': productId,
+          'prix_achat_super_gros': item.purchasePrice,
+          'marge_gros_percent': item.marginPercentage,
+          'marge_detail_percent': (1.30 - 1.0) * 100,
+          'tva_rate': item.tvaPercentage,
+        });
+        
+        await supabase.from('stock').insert({
+          'product_id': productId,
+          'qty_detail': item.quantity,
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

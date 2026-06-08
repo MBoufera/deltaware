@@ -1,0 +1,187 @@
+Deltaware Project Sprints
+=========================
+
+Phase P1: Foundation & Infrastructure
+========================================
+  Sprint P1-S1: Project Setup & Structure
+    - [x] P1-S1-T1: Initialize Flutter project with clean architecture folders: lib/core/{constants,errors,network,theme,utils,di}, lib/features/{auth,products,sales,analytics,workers,clients,documents,settings}, lib/shared/{widgets,extensions}
+    - [x] P1-S1-T2: Add all Flutter pubspec.yaml dependencies: flutter_bloc, bloc, equatable, dartz, dio, get_it, injectable, injectable_generator, go_router, freezed, json_serializable, build_runner, pdf, printing, fl_chart, intl, flutter_secure_storage, image_picker, cached_network_image, supabase_flutter, shared_preferences
+    - [ ] P1-S1-T3: Initialize FastAPI project with folder structure: app/core/{config.py, security.py, dependencies.py, permissions.py}, app/routers/, app/models/, app/schemas/, app/services/, app/utils/, main.py, requirements.txt
+    - [ ] P1-S1-T4: Install all backend dependencies: fastapi, uvicorn[standard], supabase, python-jose[cryptography], passlib[bcrypt], python-dotenv, reportlab, pydantic[v2], httpx, pillow, python-multipart, openpyxl
+    - [x] P1-S1-T5: Create Supabase project, set up two buckets in Supabase Storage (product-images: public, documents: private), configure .env files for both backend and Flutter with SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, JWT_SECRET
+    - [ ] P1-S1-T6: Initialize Git repository: .gitignore (exclude .env, build/, *.g.dart generated files), create branches main and develop, write README.md with project overview and setup instructions
+
+  Sprint P1-S2: Database Schema Design & Migration
+    - [x] P1-S2-T1: Create table 'users': id UUID PK, email VARCHAR UNIQUE, full_name VARCHAR, role ENUM(admin, worker), permissions JSONB DEFAULT '{}', is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ, last_login TIMESTAMPTZ
+    - [x] P1-S2-T2: Create table 'categories': id UUID PK, name_fr VARCHAR NOT NULL, name_ar VARCHAR, tva_rate DECIMAL(5,2) DEFAULT 19.00, icon VARCHAR, description TEXT, is_active BOOLEAN DEFAULT true
+    - [x] P1-S2-T3: Create table 'products': id UUID PK, ref_code VARCHAR UNIQUE, name_fr VARCHAR NOT NULL, name_ar VARCHAR, category_id UUID FK(categories), unit VARCHAR DEFAULT 'pièce', image_url TEXT, description TEXT, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ
+    - [x] P1-S2-T4: Create table 'product_pricing': id UUID PK, product_id UUID FK(products) UNIQUE, prix_achat_super_gros DECIMAL(12,2) NOT NULL, marge_gros_percent DECIMAL(5,2) DEFAULT 10.00, prix_vente_gros_ht DECIMAL(12,2) GENERATED, marge_detail_percent DECIMAL(5,2) DEFAULT 20.00, prix_vente_detail_ht DECIMAL(12,2) GENERATED, tva_rate DECIMAL(5,2) DEFAULT 19.00, updated_at TIMESTAMPTZ
+    - [x] P1-S2-T5: Create table 'stock': id UUID PK, product_id UUID FK(products) UNIQUE, qty_super_gros DECIMAL(12,3) DEFAULT 0, qty_gros DECIMAL(12,3) DEFAULT 0, qty_detail DECIMAL(12,3) DEFAULT 0, alert_threshold DECIMAL(12,3) DEFAULT 5, updated_at TIMESTAMPTZ
+    - [x] P1-S2-T6: Create table 'clients': id UUID PK, name VARCHAR NOT NULL, type ENUM(particulier, entreprise, gouvernement), address TEXT, wilaya VARCHAR, nif VARCHAR, nis VARCHAR, rc VARCHAR, ai VARCHAR, phone VARCHAR, email VARCHAR, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ
+    - [x] P1-S2-T7: Create table 'sales': id UUID PK, sale_number VARCHAR UNIQUE (format: 2026-00001), worker_id UUID FK(users), client_id UUID FK(clients) NULLABLE, sale_type ENUM(detail, gros, bon_livraison, bon_commande, gouvernement), total_ht DECIMAL(14,2), tva_amount DECIMAL(14,2), timbre_fiscal DECIMAL(14,2) DEFAULT 0, total_ttc DECIMAL(14,2), status ENUM(pending, confirmed, cancelled) DEFAULT confirmed, notes TEXT, created_at TIMESTAMPTZ
+    - [x] P1-S2-T8: Create table 'sale_items': id UUID PK, sale_id UUID FK(sales), product_id UUID FK(products), quantity DECIMAL(12,3) NOT NULL, unit_price_ht DECIMAL(12,2) NOT NULL, tva_rate DECIMAL(5,2), unit_price_ttc DECIMAL(12,2), total_ht DECIMAL(14,2), total_ttc DECIMAL(14,2), discount_percent DECIMAL(5,2) DEFAULT 0
+    - [x] P1-S2-T9: Create table 'documents': id UUID PK, sale_id UUID FK(sales), document_type ENUM(facture, bon_livraison, bon_commande, recu), document_number VARCHAR UNIQUE (format: FAC-2026-0001, BL-2026-0001, BC-2026-0001), file_url TEXT, created_at TIMESTAMPTZ
+    - [x] P1-S2-T10: Create table 'app_settings': key VARCHAR PK, value JSONB, updated_at TIMESTAMPTZ. Seed with: store_name, address, wilaya, phone, nif, nis, rc, ai, logo_url, default_tva_rate, default_margin_gros, default_margin_detail, timbre_fiscal_enabled, timbre_fiscal_rate, primary_language
+    - [x] P1-S2-T11: Configure Supabase Row Level Security (RLS): admin role = full access all tables; worker role = read products/categories/pricing/stock, insert/read sales and sale_items for own worker_id, read clients; no access to analytics or settings
+    - [x] P1-S2-T12: Seed initial data: 1 admin account, 5 categories with correct TVA rates (Informatique 19%, Fournitures Scolaires 9%, Bureautique 19%, Trophées 19%, Accessoires Informatique 19%), default app_settings with DZD currency
+
+
+Phase P2: Authentication & RBAC
+========================================
+  Sprint P2-S1: Backend Authentication
+    - [ ] P2-S1-T1: Implement Supabase Auth integration in FastAPI using supabase-py: handle email/password authentication, map Supabase user to our users table on first login
+    - [ ] P2-S1-T2: Create JWT utility in core/security.py: create_access_token(user_id, role, permissions, expires_delta), create_refresh_token(), verify_token(token) → TokenPayload, using HS256
+    - [ ] P2-S1-T3: Define permission schema as Pydantic model: UserPermissions(manage_products, view_analytics, manage_clients, manage_workers, access_settings, make_sales, view_all_sales, cancel_sales, manage_stock) — all bool fields
+    - [ ] P2-S1-T4: Implement FastAPI dependency functions in core/dependencies.py: get_current_user() → User, require_admin(), require_permission(permission_name: str) — raises 403 if check fails
+    - [ ] P2-S1-T5: Build POST /api/auth/login: accepts {email, password}, returns {access_token, refresh_token, token_type, user: {id, full_name, role, permissions}}
+    - [ ] P2-S1-T6: Build POST /api/auth/refresh: accepts {refresh_token}, returns new {access_token, refresh_token}
+    - [ ] P2-S1-T7: Build POST /api/auth/logout: invalidate session via Supabase signout, update last_login timestamp
+    - [ ] P2-S1-T8: Build GET /api/auth/me: returns full current user profile including permissions — used on app startup for re-hydration
+
+  Sprint P2-S2: Flutter Authentication
+    - [x] P2-S2-T1: Create AuthBloc: Events(LoginRequested{email,password}, LogoutRequested, AuthCheckRequested), States(AuthInitial, AuthLoading, AuthAuthenticated{user, permissions}, AuthUnauthenticated, AuthError{message})
+    - [x] P2-S2-T2: Implement auth domain layer: AuthEntity, UserPermissionsEntity, LoginUseCase, LogoutUseCase, GetCurrentUserUseCase, AuthRepository interface. Implement AuthRepositoryImpl + AuthRemoteDataSource (Dio)
+    - [x] P2-S2-T3: Implement secure token storage with flutter_secure_storage: store access_token, refresh_token, user_role, user_id, permissions_json. Implement TokenLocalDataSource with read/write/clear methods
+    - [x] P2-S2-T4: Build Login screen UI: centered card layout, company logo placeholder, email TextField, password TextField with toggle visibility, Connexion button with loading indicator, error display SnackBar
+    - [x] P2-S2-T5: Implement go_router configuration with guards: /splash → /login (if unauthenticated) or /admin (if admin) or /worker (if worker). Admin shell with sidebar nav, Worker shell with bottom nav. Redirect logic based on token + role
+    - [x] P2-S2-T6: Build SplashScreen: show logo 1.5s, call AuthCheckRequested, route based on result. If token exists and valid → role-based home. If expired → try refresh → if fails → login
+    - [ ] P2-S2-T7: Implement Dio interceptor (AppInterceptor): inject Bearer token on every request, on 401 response → try token refresh → retry request → if refresh fails → trigger LogoutRequested
+
+
+Phase P3: Product & Category Management
+========================================
+  Sprint P3-S1: Backend Product APIs
+    - [ ] P3-S1-T1: Build categories router: GET /api/categories, POST /api/categories (admin), PUT /api/categories/{id} (admin), DELETE /api/categories/{id} (admin). Include TVA rate in response.
+    - [ ] P3-S1-T2: Build products router: GET /api/products (filters: category_id, search, is_active, page, limit), POST /api/products (admin/manage_products), PUT /api/products/{id}, DELETE /api/products/{id}. Response includes pricing and stock summary.
+    - [ ] P3-S1-T3: Implement PricingService in app/services/pricing.py: compute_gros_price(prix_achat, marge_gros_pct) → HT, compute_detail_price(prix_gros_ht, marge_detail_pct) → HT, compute_ttc(prix_ht, tva_rate) → TTC, compute_timbre(total_ttc, rate) → timbre. All return Decimal rounded to 2.
+    - [ ] P3-S1-T4: Build pricing endpoints: GET /api/products/{id}/pricing (returns full price breakdown: achat, gros_ht, gros_ttc, detail_ht, detail_ttc, tva_rate, marge_pcts), PUT /api/products/{id}/pricing (auto-computes on save)
+    - [ ] P3-S1-T5: Build stock endpoints: GET /api/products/{id}/stock, PUT /api/products/{id}/stock (manual adjustment with reason: initial_load, adjustment, return), GET /api/products/low-stock (qty_detail < alert_threshold)
+    - [ ] P3-S1-T6: Build POST /api/products/{id}/image: receive multipart file, validate image type and size (max 2MB), upload to Supabase Storage product-images bucket, update product.image_url, return public URL
+    - [ ] P3-S1-T7: Build GET /api/products/search?q={query}: full-text search on name_fr, name_ar, ref_code using PostgreSQL ILIKE or full-text search. Return top 20 results with minimal fields for fast POS lookup.
+
+  Sprint P3-S2: Flutter Admin Product Pages
+    - [ ] P3-S2-T1: Create ProductBloc: Events(LoadProducts{filters}, LoadSingleProduct, CreateProduct, UpdateProduct, DeleteProduct, UpdatePricing, UpdateStock), States(ProductInitial, ProductLoading, ProductsLoaded{list, pagination}, ProductError{message})
+    - [x] P3-S2-T2: Build product list page (admin): searchable DataTable or ListView, category filter chips at top, columns: image, ref, name, category, prix_vente_gros_ttc, stock_qty, status badge. Action menu: edit, update stock, delete.
+    - [x] P3-S2-T3: Build add/edit product form: TextFields for name_fr, name_ar, ref_code; category Dropdown; unit DropdownButton (pièce/boîte/kg/litre/ramette); image picker with preview; active Switch. Validation on all required fields.
+    - [x] P3-S2-T4: Build pricing widget: NumberField for prix_achat_super_gros; toggle switch 'Marge Auto (10%)' vs 'Marge Manuelle'; sliders or fields for marge_gros_pct and marge_detail_pct; live preview card showing: prix_vente_gros HT, prix_vente_gros TTC, prix_vente_detail HT, prix_vente_detail TTC, TVA breakdown in DZD.
+    - [x] P3-S2-T5: Build stock management page per product: three quantity cards (Super Gros / Gros / Détail) each with current qty and +/- input. Alert threshold input. Submit button updates stock with reason=adjustment.
+    - [x] P3-S2-T6: Build category management page: list of categories with TVA rate badge, add/edit drawer, delete confirmation dialog with warning if products are using that category.
+    - [x] P3-S2-T7: Implement low stock alert: red badge counter on sidebar nav item 'Produits', red chip on individual product rows in list when qty < threshold. Refresh on page entry.
+
+
+Phase P4: Sales & POS Engine
+========================================
+  Sprint P4-S1: Backend Sales APIs
+    - [x] P4-S1-T1: Build clients router: GET /api/clients (filter: type, search), POST /api/clients, PUT /api/clients/{id}, GET /api/clients/{id}. Validate NIF/NIS/RC/AI are present for entreprise and gouvernement types.
+    - [x] P4-S1-T2: Implement SaleCalculatorService: for each SaleItem compute (unit_price_ht, tva_amount_per_unit, unit_price_ttc, total_ht, total_ttc). For full sale: grand_total_ht, tva_breakdown_by_rate{19%: amount, 9%: amount}, total_tva, timbre_fiscal (if enabled: 1% * total_ttc), grand_total_ttc.
+    - [x] P4-S1-T3: Build POST /api/sales: validate stock availability per item, run SaleCalculatorService, insert sale + sale_items in transaction, deduct stock (detail sale deducts qty_detail, gros deducts qty_gros), auto-generate sale_number, trigger document generation, return full sale response.
+    - [x] P4-S1-T4: Build GET /api/sales: query params: date_from, date_to, worker_id, sale_type, status, page, limit. Workers can only see their own sales (enforce via RLS or service layer). Admins see all.
+    - [x] P4-S1-T5: Build GET /api/sales/{id}: full sale detail including sale_items with product names, client info, totals breakdown, and linked document URLs.
+    - [x] P4-S1-T6: Build PUT /api/sales/{id}/cancel (admin only): set status=cancelled, reverse stock deduction for all items, log cancellation reason.
+    - [x] P4-S1-T7: Implement sale_number auto-generation: PostgreSQL sequence per year. Format: {YYYY}-{05d} e.g. 2026-00001. Reset to 00001 each January 1st. Same logic for document numbers: FAC-{YYYY}-{04d}, BL-{YYYY}-{04d}, BC-{YYYY}-{04d}.
+
+  Sprint P4-S2: Flutter Worker POS Pages
+    - [x] P4-S2-T1: Create SalesBloc: Events(SelectSaleType, SearchProducts, AddItemToCart, RemoveItemFromCart, UpdateItemQty, SetClient, SubmitSale, CancelSale, ResetSale), States(SaleIdle, SaleTypeSelected, CartState{items, totals}, ClientSet, SaleSubmitting, SaleSuccess{sale}, SaleError)
+    - [x] P4-S2-T2: Build sale type selector screen: 5 large tappable cards in grid: Vente Détail (icon: person), Vente Gros (icon: warehouse), Bon de Livraison (icon: truck), Bon de Commande (icon: clipboard), Gouvernement (icon: building). Each with brief description. Highlight selected.
+    - [x] P4-S2-T3: Build product selection screen: top search bar (calls /products/search), category tab bar, product grid card (image, name, ref, price based on sale type — gros price for gros/BL/BC/gouv, detail price for détail, stock badge). Tap to add. Long press to set qty.
+    - [x] P4-S2-T4: Build cart panel (right side on desktop, bottom sheet on mobile): list items with product name, qty stepper (+/-), unit price HT, TVA%, total TTC per line. Remove button. Sticky footer: Total HT | TVA 19% | TVA 9% | Timbre | TOTAL TTC in DZD.
+    - [x] P4-S2-T5: Build client info form (required for gros/BL/BC/gouvernement): search existing clients autocomplete or 'Nouveau Client' button. Fields: Nom, Type, NIF, NIS, RC, AI, Adresse, Wilaya, Téléphone. Required field validation per type.
+    - [x] P4-S2-T6: Build checkout summary screen: read-only itemized list, totals block (HT / TVA par taux / Timbre Fiscal / TTC en DZD), client info summary, document type that will be generated, Confirmer la Vente button with loading state.
+    - [x] P4-S2-T7: Build sale success screen: green check animation, sale number display, total TTC in large DZD, document type generated badge, two action buttons: [Imprimer le Document] [Nouvelle Vente]. Also show in worker's sales history.
+
+
+Phase P5: Document Generation & Printing
+========================================
+  Sprint P5-S1: Backend Document Generation (ReportLab)
+    - [x] P5-S1-T1: Design BaseDocumentBuilder class in ReportLab: page size A4, margins, company header block (logo, store name, address, wilaya, NIF, NIS, RC, AI, phone), footer with page numbers and 'Document généré par LibraryPOS', reusable styles (table header, body, total row).
+    - [x] P5-S1-T2: Implement FactureBuilder: two-column header (Vendeur | Acheteur with NIF/NIS/RC/AI), facture number + date + payment terms, itemized table (N°, Réf, Désignation, Qté, Unité, PU HT, Taux TVA, Montant TVA, Total TTC), totals bloc (Total HT, TVA 19%, TVA 9%, Timbre Fiscal, NET À PAYER in DZD), amount in words in French.
+    - [x] P5-S1-T3: Implement BonLivraisonBuilder: BL number + date, sender and receiver blocks, delivery address, item table (Désignation, Qté, Unité, Observations), signature zones (Livreur | Client), note block.
+    - [x] P5-S1-T4: Implement BonCommandeBuilder: BC number + date + validity, client block, supplier block, item table (Désignation, Qté, Unité, PU Estimé, Total Estimé), terms and conditions section, authorization signature block.
+    - [x] P5-S1-T5: Implement document numbering service: maintain counters per type per year in a sequences table (or PostgreSQL sequence), generate next number atomically, format as FAC-2026-0001, BL-2026-0001, BC-2026-0001.
+    - [x] P5-S1-T6: Build POST /api/documents/generate: body {sale_id, document_type}. Fetch sale data, build correct PDF, upload bytes to Supabase Storage documents/ bucket with path {type}/{year}/{doc_number}.pdf, insert document record, return {document_id, document_number, download_url}.
+    - [x] P5-S1-T7: Build GET /api/documents/{id}/download: return a Supabase signed URL (valid 1 hour) for the document PDF in private storage. Also build GET /api/sales/{id}/documents to list all documents for a sale.
+
+  Sprint P5-S2: Flutter Document Viewer & Print
+    - [x] P5-S2-T1: Build PDF viewer screen: download PDF bytes from signed URL, display using pdfx or printing.layoutPdf widget. Support pinch-to-zoom, page scroll, page counter display.
+    - [x] P5-S2-T2: Implement print action: use printing package Printing.layoutPdf() to send to system print dialog on Windows or Android. Support A4 format. Test with both USB and network printers.
+    - [x] P5-S2-T3: Build document history page (admin): list all documents with filters (type, date range, client). Show doc number, type badge, sale number, date, client name. Tap to open PDF viewer.
+    - [x] P5-S2-T4: Implement share PDF: use share_plus package to share document PDF via system share sheet (WhatsApp, email, Save to file). Available from the PDF viewer screen.
+    - [x] P5-S2-T5: Implement re-print from sale history: in sale detail screen, show list of generated documents with 'Télécharger' and 'Imprimer' buttons. Allow generating a missing document type (e.g. print BL for a gros sale that didn't have one).
+
+
+Phase P6: Analytics & Reporting
+========================================
+  Sprint P6-S1: Backend Analytics APIs
+    - [x] P6-S1-T1: Build GET /api/analytics/summary?period=day|week|month|year&date={iso_date}: returns {sales_count, total_revenue_ht, total_tva, total_timbre, total_revenue_ttc, total_cost_price, gross_profit, gross_margin_percent, avg_sale_value}. gross_profit = total_revenue_ht - sum(prix_achat_super_gros * qty per item).
+    - [x] P6-S1-T2: Build GET /api/analytics/timeline?period=day|week|month&date_from={}&date_to={}: returns array of data points {date_label, revenue_ht, gross_profit, sales_count} suitable for line chart rendering.
+    - [x] P6-S1-T3: Build GET /api/analytics/workers?period=day|week|month|year&date={}: returns list [{worker_id, full_name, sales_count, revenue_ht, gross_profit, top_product}] for the given period.
+    - [x] P6-S1-T4: Build GET /api/analytics/top-products?period=...&limit=10: returns [{product_id, name_fr, category, qty_sold, revenue_ht, gross_profit}] sorted by revenue descending.
+    - [x] P6-S1-T5: Build GET /api/analytics/by-category?period=...: returns [{category_name, sales_count, revenue_ht, revenue_percent_of_total, gross_profit}].
+    - [x] P6-S1-T6: Build GET /api/analytics/by-sale-type?period=...: returns [{sale_type, count, revenue_ht, revenue_ttc}] breakdown across all 5 types.
+    - [x] P6-S1-T7: Build GET /api/analytics/stock-value: returns total stock value at cost price and at selling price, broken down by category.
+    - [x] P6-S1-T8: Build GET /api/analytics/workers/{worker_id}/sales?period=...: paginated list of individual sales made by this worker for the period. Used for drill-down from worker comparison view.
+
+  Sprint P6-S2: Flutter Admin Analytics Dashboard
+    - [x] P6-S2-T1: Create AnalyticsBloc: Events(LoadDashboard, ChangePeriod{period}, ChangeDateRange{from, to}, LoadWorkerDetail{workerId}), States(AnalyticsInitial, AnalyticsLoading, AnalyticsLoaded{summary, timeline, workers, topProducts, byCategory}, AnalyticsError).
+    - [x] P6-S2-T2: Build admin dashboard home: period toggle tabs (Aujourd'hui / Semaine / Mois / Année), KPI cards row (CA HT, Bénéfice Brut, Nb Ventes, Marge %). All values in DZD with French number formatting (1 234 567,00 DA).
+    - [x] P6-S2-T3: Build revenue & profit line chart using fl_chart LineChart: x-axis dates, two lines (CA HT in blue, Bénéfice in green), interactive tooltip on tap showing both values in DZD, legend below chart.
+    - [x] P6-S2-T4: Build worker performance panel: ranked cards for each worker showing name, avatar initials, nb ventes, CA HT, Bénéfice. If >1 worker: add bar chart comparison using fl_chart BarChart. Tap a worker card to drill into their sales.
+    - [x] P6-S2-T5: Build top products widget: horizontal ranked list with rank badge, product name, qty sold, CA HT. Optional: fl_chart HorizontalBarChart.
+    - [x] P6-S2-T6: Build sales by category donut chart: fl_chart PieChart with each category as a slice, tap slice to see exact DZD amount and percentage. Legend with color-coded category names.
+    - [x] P6-S2-T7: Build custom date range picker: DateRangePickerDialog or custom calendar widget. Triggers reload of all analytics with date_from and date_to params.
+    - [x] P6-S2-T8: Build worker drill-down: tapping a worker on the comparison view opens a page with their sales list for the period (same as sales history but filtered). Show their personal KPIs at top.
+
+
+Phase P7: Admin Control Panel
+========================================
+  Sprint P7-S1: Worker Management
+    - [x] P7-S1-T1: Build backend worker management endpoints: GET /api/workers (admin only), POST /api/workers (create worker account with hashed password in Supabase Auth + insert in users table), PUT /api/workers/{id}, PUT /api/workers/{id}/toggle-active, PUT /api/workers/{id}/permissions.
+    - [x] P7-S1-T2: Build workers list page (admin): table with columns: Name, Email, Statut (Active badge), Dernière Connexion, Ventes ce Mois. Action buttons: Modifier, Permissions, Désactiver.
+    - [x] P7-S1-T3: Build create/edit worker form: full_name, email, password (create only, with confirm field), toggle is_active. Validation: strong password, valid email format.
+    - [x] P7-S1-T4: Build permissions matrix UI: a dedicated drawer or dialog with a labeled SwitchListTile for each permission: [Gérer les Produits] [Gérer le Stock] [Gérer les Clients] [Voir Toutes les Ventes] [Annuler une Vente] [Voir les Rapports]. Save button calls PUT /workers/{id}/permissions.
+    - [x] P7-S1-T5: Build worker activity log: backend adds log entries to an audit_log table on key actions (sale made, product edited, stock updated). Frontend page: chronological list per worker with action type icon, description, timestamp.
+
+  Sprint P7-S2: Store Settings & Configuration
+    - [x] P7-S2-T1: Build store identity settings page: form fields for Nom du Magasin, Adresse, Wilaya, Téléphone, NIF, NIS, RC, AI (these appear on all generated documents). Logo upload via Supabase Storage. PUT /api/settings endpoint to save.
+    - [x] P7-S2-T2: Build pricing defaults settings: NumberField for Marge Gros par défaut (%), Marge Détail par défaut (%), Toggle Timbre Fiscal (enabled/disabled), Timbre Fiscal Rate field (default 1%). Changes apply to new products only.
+    - [x] P7-S2-T3: Build TVA configuration per category: table listing all categories with an editable TVA rate dropdown (0% / 9% / 19%) per row. Save applies to all products in that category (updates product_pricing.tva_rate for affected products).
+    - [x] P7-S2-T4: Build printer configuration page: default paper format selector (A4 / A5), on Windows show list of available printers via dart:ffi or printing package. Test Print button sends a sample receipt.
+    - [x] P7-S2-T5: Implement data export: admin selects date range, clicks Export, backend GET /api/export/sales?format=csv&date_from=&date_to= returns CSV file with all sale and item details. Flutter downloads and offers save-to-file dialog.
+    - [x] P7-S2-T6: Build language settings: toggle French/Arabic (stored in app_settings). Update intl locale app-wide, flip text direction to RTL for Arabic. Document templates switch language for generated PDFs.
+
+
+Phase P8: Testing & QA
+========================================
+  Sprint P8-S1: Backend Testing
+    - [ ] P8-S1-T1: Unit tests for PricingService: test auto 10% margin, manual margin override, TVA 19%/9%/0%, timbre fiscal at 1%, edge cases (zero prix_achat, 100% margin, mixed TVA products).
+    - [ ] P8-S1-T2: Unit tests for SaleCalculatorService: single-TVA sale, mixed 19%+9% sale, sale with timbre, discount calculation, sale with 0% TVA item, large sale (50+ items).
+    - [ ] P8-S1-T3: Integration tests for auth endpoints using TestClient: login success, wrong password, inactive user blocked, token refresh valid and expired, permission denied on admin-only route.
+    - [ ] P8-S1-T4: Integration tests for product endpoints: create product with pricing, update margin, verify computed prices update, stock deduction after sale, low-stock alert threshold trigger.
+    - [ ] P8-S1-T5: Integration tests for sales endpoints: all 5 sale types, insufficient stock rejection (expect 400), sale cancellation with stock rollback, document generation after sale, sale_number uniqueness.
+    - [ ] P8-S1-T6: Integration tests for analytics endpoints: create known test sales in DB, call summary endpoint, verify computed totals match expected values for all periods (day, week, month, year).
+
+  Sprint P8-S2: Flutter Testing
+    - [ ] P8-S2-T1: Unit tests for all BLoC classes using bloc_test: AuthBloc (login success/failure, logout, auto-login), ProductBloc (load, create, error states), SalesBloc (add item, remove, checkout), AnalyticsBloc (period change).
+    - [ ] P8-S2-T2: Widget tests for key screens: Login screen (renders fields, submit disabled when empty, error shown on failure), Pricing widget (auto-calculation updates live), Cart panel (totals correct after add/remove).
+    - [ ] P8-S2-T3: Integration test: full authentication flow — app launches on splash, admin credentials entered, routed to admin dashboard, logout, worker credentials, routed to worker POS.
+    - [ ] P8-S2-T4: Integration test: full POS flow — worker selects 'Bon de Livraison', searches and adds 3 products, fills client info, reviews checkout, confirms sale, PDF opens in viewer, print triggered.
+    - [ ] P8-S2-T5: Performance test: product list with 500+ items (verify smooth 60fps scroll), analytics dashboard with 365-day chart (verify render < 2s), POS product search (verify results appear < 500ms).
+
+
+Phase P9: Deployment & Launch
+========================================
+  Sprint P9-S1: Production Setup & Build
+    - [x] P9-S1-T1: Configure production Supabase: enable Point-in-Time Recovery, set up daily automated backup, configure SMTP for auth emails, set storage CORS policies, enable Supabase logs.
+    - [x] P9-S1-T2: Deploy FastAPI to production: set up on Railway or Render (or VPS with Docker), configure all production env vars, set up health check at GET /health, configure CORS to only allow Flutter app origins.
+    - [x] P9-S1-T3: Configure Flutter build flavors: development (dev API, dev Supabase) and production (prod API, prod Supabase) using --dart-define or flavors. Ensure no dev credentials leak into production build.
+    - [x] P9-S1-T4: Build Flutter for Windows: flutter build windows --release --flavor production. Package as MSIX installer using msix package. Test installation on a fresh Windows 10/11 machine.
+    - [x] P9-S1-T5: Build Flutter for Android: flutter build apk --release --flavor production. Sign with release keystore. Test on Android 8+ device. For worker mobile use.
+    - [x] P9-S1-T6: Full production smoke test: admin login, create product with pricing, worker makes each of the 5 sale types, generate and print each document type, verify analytics show correct numbers, export CSV.
+
+  Sprint P9-S2: Documentation & Handoff
+    - [x] P9-S2-T1: Review and complete FastAPI auto-generated OpenAPI docs at /docs: add descriptions, examples, and response schemas for all endpoints. Export as JSON for offline reference.
+    - [x] P9-S2-T2: Write worker user guide PDF (French): step-by-step with screenshots — login, choose sale type, add products, fill client info, confirm, print. Include common error solutions.
+    - [x] P9-S2-T3: Write admin user guide PDF (French): product management and pricing, analytics reading, worker management and permissions, settings configuration, document history.
+    - [x] P9-S2-T4: Write technical operations document: Supabase backup/restore procedure, API key rotation steps, how to add a new worker account, how to update TVA rates, Supabase maintenance guide.
+
+

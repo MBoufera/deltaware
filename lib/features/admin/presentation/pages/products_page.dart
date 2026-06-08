@@ -12,12 +12,12 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final _supabase = Supabase.instance.client;
-  late final Stream<List<Map<String, dynamic>>> _productsStream;
+  late final Future<List<Map<String, dynamic>>> _productsFuture;
 
   @override
   void initState() {
     super.initState();
-    _productsStream = _supabase.from('products').stream(primaryKey: ['id']).order('created_at', ascending: false);
+    _productsFuture = _supabase.from('products').select('*, categories(name_fr), product_pricing(*), stock(*)').order('created_at', ascending: false);
   }
 
   @override
@@ -132,8 +132,8 @@ class _ProductsPageState extends State<ProductsPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: _productsStream,
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _productsFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
@@ -194,7 +194,7 @@ class _ProductsPageState extends State<ProductsPage> {
                                         ),
                                         const SizedBox(width: 16),
                                         Text(
-                                          product['name'],
+                                          product['name_fr'] ?? '',
                                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                                         ),
                                       ],
@@ -208,25 +208,41 @@ class _ProductsPageState extends State<ProductsPage> {
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
-                                        product['category'] ?? 'products.uncategorized'.tr(),
+                                        product['categories']?['name_fr'] ?? 'products.uncategorized'.tr(),
                                         style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                   ),
                                   DataCell(
-                                    Text(
-                                      '${product['stock'] ?? 0}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: (product['stock'] ?? 0) > 20 ? Colors.green.shade700 : ((product['stock'] ?? 0) == 0 ? Colors.red.shade700 : Colors.orange.shade700),
-                                      ),
+                                    Builder(
+                                      builder: (context) {
+                                        final qty = (product['stock']?['qty_detail'] ?? 0) as num;
+                                        final threshold = (product['stock']?['alert_threshold'] ?? 5) as num;
+                                        final isLowStock = qty <= threshold;
+                                        
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: isLowStock ? BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.red.shade200),
+                                          ) : null,
+                                          child: Text(
+                                            '$qty',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isLowStock ? Colors.red.shade700 : Colors.green.shade700,
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     ),
                                   ),
-                                  DataCell(Text('${(product['purchase_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD')),
-                                  DataCell(Text('${(product['wholesale_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                  DataCell(Text('${(product['product_pricing']?['prix_achat_super_gros'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD')),
+                                  DataCell(Text('${(product['product_pricing']?['prix_vente_gros_ht'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD', style: const TextStyle(fontWeight: FontWeight.w500))),
                                   DataCell(
                                     Text(
-                                      '${(product['retail_price'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD',
+                                      '${(product['product_pricing']?['prix_vente_detail_ht'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD',
                                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                                     ),
                                   ),

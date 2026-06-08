@@ -69,17 +69,36 @@ class _AddProductPageState extends State<AddProductPage> {
       try {
         final supabase = Supabase.instance.client;
         
-        await supabase.from('products').insert({
-          'name': _nameController.text,
-          'barcode': _barcodeController.text.isEmpty ? null : _barcodeController.text,
-          'category': _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text,
-          'purchase_price': double.tryParse(_purchasePriceController.text) ?? 0.0,
-          'wholesale_margin': double.tryParse(_wholesaleMarginController.text) ?? 0.0,
-          'retail_multiplier': double.tryParse(_retailMultiplierController.text) ?? 1.30,
-          'tva': double.tryParse(_tvaController.text) ?? 19.0,
-          'wholesale_price': _wholesalePrice,
-          'retail_price': _retailPrice,
-          'stock': 0, // Default stock when just creating a product definition
+        final categoryName = _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text;
+        var categoryResponse = await supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+        String categoryId;
+        if (categoryResponse == null) {
+          final newCat = await supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+          categoryId = newCat['id'];
+        } else {
+          categoryId = categoryResponse['id'];
+        }
+        
+        final productResponse = await supabase.from('products').insert({
+          'name_fr': _nameController.text,
+          'ref_code': _barcodeController.text.isEmpty ? null : _barcodeController.text,
+          'category_id': categoryId,
+        }).select('id').single();
+        final productId = productResponse['id'];
+        
+        final retailMultiplier = double.tryParse(_retailMultiplierController.text) ?? 1.30;
+        final margeDetail = (retailMultiplier - 1.0) * 100;
+        
+        await supabase.from('product_pricing').insert({
+          'product_id': productId,
+          'prix_achat_super_gros': double.tryParse(_purchasePriceController.text) ?? 0.0,
+          'marge_gros_percent': double.tryParse(_wholesaleMarginController.text) ?? 0.0,
+          'marge_detail_percent': margeDetail,
+          'tva_rate': double.tryParse(_tvaController.text) ?? 19.0,
+        });
+        
+        await supabase.from('stock').insert({
+          'product_id': productId,
         });
 
         if (mounted) {
