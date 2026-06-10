@@ -53,7 +53,10 @@
     "col_wholesale": "سعر الجملة",
     "col_retail": "سعر البيع",
     "col_actions": "إجراءات",
-    "uncategorized": "غير مصنف"
+    "uncategorized": "غير مصنف",
+    "low_stock": "مخزون منخفض",
+    "delete_confirm_title": "حذف المنتج",
+    "delete_confirm_desc": "هل أنت متأكد أنك تريد حذف المنتج {}؟"
   },
   "add_product": {
     "title": "إضافة منتج جديد",

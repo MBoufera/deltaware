@@ -96,7 +96,13 @@ final GoRouter _router = GoRouter(
               path: 'products',
               builder: (context, state) => const ProductsPage(),
               routes: [
-                GoRoute(path: 'add', builder: (context, state) => const AddProductPage()),
+                GoRoute(
+                  path: 'add',
+                  builder: (context, state) {
+                    final product = state.extra as Map<String, dynamic>?;
+                    return AddProductPage(product: product);
+                  },
+                ),
               ],
             ),
             GoRoute(path: 'users', builder: (context, state) => const UserManagementPage()),

@@ -7,19 +7,21 @@ import '../bloc/product/product_event.dart';
 import '../bloc/product/product_state.dart';
 
 class AddProductPage extends StatelessWidget {
-  const AddProductPage({super.key});
+  final Map<String, dynamic>? product;
+  const AddProductPage({super.key, this.product});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => ProductBloc(),
-      child: const AddProductForm(),
+      child: AddProductForm(product: product),
     );
   }
 }
 
 class AddProductForm extends StatefulWidget {
-  const AddProductForm({super.key});
+  final Map<String, dynamic>? product;
+  const AddProductForm({super.key, this.product});
 
   @override
   State<AddProductForm> createState() => _AddProductFormState();
@@ -44,10 +46,33 @@ class _AddProductFormState extends State<AddProductForm> {
   @override
   void initState() {
     super.initState();
+    if (widget.product != null) {
+      final p = widget.product!;
+      _nameController.text = p['name_fr'] ?? '';
+      _barcodeController.text = p['ref_code'] ?? '';
+      _categoryController.text = p['categories']?['name_fr'] ?? '';
+      
+      final pricing = p['product_pricing'];
+      if (pricing != null) {
+        _purchasePriceController.text = (pricing['prix_achat_super_gros'] as num?)?.toString() ?? '0';
+        _wholesaleMarginController.text = (pricing['marge_gros_percent'] as num?)?.toString() ?? '0';
+        _tvaController.text = (pricing['tva_rate'] as num?)?.toString() ?? '19';
+        
+        // Convert marge detail back to retail multiplier
+        final margeDetail = (pricing['marge_detail_percent'] as num?)?.toDouble() ?? 30.0;
+        final retailMultiplier = 1.0 + (margeDetail / 100);
+        _retailMultiplierController.text = retailMultiplier.toStringAsFixed(2);
+      }
+    }
+    
     // Add listeners to auto-calculate when values change
     _purchasePriceController.addListener(_calculatePrices);
     _wholesaleMarginController.addListener(_calculatePrices);
     _retailMultiplierController.addListener(_calculatePrices);
+    
+    if (widget.product != null) {
+      _calculatePrices();
+    }
   }
 
   @override
@@ -87,17 +112,32 @@ class _AddProductFormState extends State<AddProductForm> {
       final retailMultiplier = double.tryParse(_retailMultiplierController.text) ?? 1.30;
       final categoryName = _categoryController.text.isEmpty ? 'products.uncategorized'.tr() : _categoryController.text;
 
-      context.read<ProductBloc>().add(
-        CreateProduct(
-          nameFr: _nameController.text,
-          refCode: _barcodeController.text.isEmpty ? null : _barcodeController.text,
-          categoryName: categoryName,
-          purchasePrice: purchasePrice,
-          tva: tva,
-          wholesaleMargin: marginPercent,
-          retailMultiplier: retailMultiplier,
-        ),
-      );
+      if (widget.product != null) {
+        context.read<ProductBloc>().add(
+          UpdateProduct(
+            id: widget.product!['id'],
+            nameFr: _nameController.text,
+            refCode: _barcodeController.text.isEmpty ? null : _barcodeController.text,
+            categoryName: categoryName,
+            purchasePrice: purchasePrice,
+            tva: tva,
+            wholesaleMargin: marginPercent,
+            retailMultiplier: retailMultiplier,
+          ),
+        );
+      } else {
+        context.read<ProductBloc>().add(
+          CreateProduct(
+            nameFr: _nameController.text,
+            refCode: _barcodeController.text.isEmpty ? null : _barcodeController.text,
+            categoryName: categoryName,
+            purchasePrice: purchasePrice,
+            tva: tva,
+            wholesaleMargin: marginPercent,
+            retailMultiplier: retailMultiplier,
+          ),
+        );
+      }
     }
   }
 
@@ -200,7 +240,7 @@ class _AddProductFormState extends State<AddProductForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'add_product.title'.tr(),
+                              widget.product != null ? 'Edit Product' : 'add_product.title'.tr(),
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -209,7 +249,7 @@ class _AddProductFormState extends State<AddProductForm> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'add_product.subtitle'.tr(),
+                              widget.product != null ? 'Update the details for this product' : 'add_product.subtitle'.tr(),
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                             const SizedBox(height: 32),

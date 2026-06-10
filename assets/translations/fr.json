@@ -53,7 +53,10 @@
     "col_wholesale": "Prix de Gros",
     "col_retail": "Prix de Détail",
     "col_actions": "Actions",
-    "uncategorized": "Non catégorisé"
+    "uncategorized": "Non catégorisé",
+    "low_stock": "Stock Faible",
+    "delete_confirm_title": "Supprimer le Produit",
+    "delete_confirm_desc": "Êtes-vous sûr de vouloir supprimer le produit {} ?"
   },
   "add_product": {
     "title": "Ajouter un Nouveau Produit",

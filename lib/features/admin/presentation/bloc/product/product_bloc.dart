@@ -26,7 +26,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           final filtered = productsList.where((p) {
             final name = (p['name_fr'] ?? '').toString().toLowerCase();
             final ref = (p['ref_code'] ?? '').toString().toLowerCase();
-            return name.contains(searchLower) || ref.contains(searchLower);
+            final cat = (p['categories']?['name_fr'] ?? '').toString().toLowerCase();
+            return name.contains(searchLower) || ref.contains(searchLower) || cat.contains(searchLower);
           }).toList();
           emit(ProductsLoaded(filtered));
         } else {
@@ -81,6 +82,46 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(ProductOperationSuccess());
       } catch (e) {
         emit(ProductError('Failed to create product: $e'));
+      }
+    });
+
+    on<UpdateProduct>((event, emit) async {
+      emit(ProductLoading());
+      try {
+        final categoryName = event.categoryName.isEmpty ? 'Uncategorized' : event.categoryName;
+        
+        // Find or create category
+        var categoryResponse = await _supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+        String categoryId;
+        if (categoryResponse == null) {
+          final newCat = await _supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+          categoryId = newCat['id'];
+        } else {
+          categoryId = categoryResponse['id'];
+        }
+        
+        // Update product
+        await _supabase.from('products').update({
+          'name_fr': event.nameFr,
+          'name_ar': event.nameAr,
+          'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
+          'category_id': categoryId,
+        }).eq('id', event.id);
+        
+        // Calculate retail margin percent
+        final margeDetail = (event.retailMultiplier - 1.0) * 100;
+        
+        // Update product pricing
+        await _supabase.from('product_pricing').update({
+          'prix_achat_super_gros': event.purchasePrice,
+          'marge_gros_percent': event.wholesaleMargin,
+          'marge_detail_percent': margeDetail,
+          'tva_rate': event.tva,
+        }).eq('product_id', event.id);
+        
+        emit(ProductOperationSuccess());
+      } catch (e) {
+        emit(ProductError('Failed to update product: $e'));
       }
     });
 
