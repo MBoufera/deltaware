@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/permissions_bloc.dart';
+import 'features/admin/presentation/bloc/role/role_bloc.dart';
+import 'core/widgets/route_permission_guard.dart';
 import 'features/admin/presentation/bloc/sales/sales_bloc.dart';
 import 'features/admin/presentation/bloc/analytics/analytics_bloc.dart';
 import 'features/admin/presentation/bloc/analytics/analytics_event.dart';
@@ -24,10 +26,9 @@ import 'features/admin/presentation/pages/expenses_page.dart';
 import 'features/admin/presentation/pages/returns_page.dart';
 import 'features/admin/presentation/pages/analytics_page.dart';
 import 'features/admin/presentation/pages/document_history_page.dart';
+import 'features/admin/presentation/pages/audit_logs_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
-
-import 'core/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +51,7 @@ Future<void> main() async {
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _adminShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'admin_shell');
-final GlobalKey<NavigatorState> _workerShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'worker_shell');
+
 
 final GoRouter _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -82,26 +83,111 @@ final GoRouter _router = GoRouter(
       routes: [
         GoRoute(
           path: '/dashboard',
-          builder: (context, state) => const AdminDashboardPage(),
+          builder: (context, state) => RoutePermissionGuard(
+            route: '/dashboard',
+            child: const AdminDashboardPage(),
+          ),
           routes: [
-            GoRoute(path: 'pos', builder: (context, state) => const PosPage()),
-            GoRoute(path: 'suppliers', builder: (context, state) => const SuppliersPage()),
-            GoRoute(path: 'expenses', builder: (context, state) => const ExpensesPage()),
-            GoRoute(path: 'returns', builder: (context, state) => const ReturnsPage()),
-            GoRoute(path: 'analytics', builder: (context, state) => const AnalyticsPage()),
-            GoRoute(path: 'smart-batch', builder: (context, state) => const SmartBatchPage()),
-            GoRoute(path: 'stock', builder: (context, state) => const StockManagementPage()),
-            GoRoute(path: 'categories', builder: (context, state) => const CategoryManagementPage()),
+            GoRoute(
+              path: 'pos',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/pos',
+                child: const PosPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'suppliers',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/suppliers',
+                child: const SuppliersPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'expenses',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/expenses',
+                child: const ExpensesPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'returns',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/returns',
+                child: const ReturnsPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'analytics',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/analytics',
+                child: const AnalyticsPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'smart-batch',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/smart-batch',
+                child: const SmartBatchPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'stock',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/stock',
+                child: const StockManagementPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'categories',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/categories',
+                child: const CategoryManagementPage(),
+              ),
+            ),
             GoRoute(
               path: 'products',
-              builder: (context, state) => const ProductsPage(),
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/products',
+                child: const ProductsPage(),
+              ),
               routes: [
-                GoRoute(path: 'add', builder: (context, state) => const AddProductPage()),
+                GoRoute(
+                  path: 'add',
+                  builder: (context, state) => RoutePermissionGuard(
+                    route: '/dashboard/products/add',
+                    child: const AddProductPage(),
+                  ),
+                ),
               ],
             ),
-            GoRoute(path: 'users', builder: (context, state) => const UserManagementPage()),
-            GoRoute(path: 'roles', builder: (context, state) => const RoleManagementPage()),
-            GoRoute(path: 'documents', builder: (context, state) => const DocumentHistoryPage()),
+            GoRoute(
+              path: 'users',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/users',
+                child: const UserManagementPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'roles',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/roles',
+                child: const RoleManagementPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'audit-logs',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/audit-logs',
+                child: const AuditLogsPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'documents',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/documents',
+                child: const DocumentHistoryPage(),
+              ),
+            ),
           ],
         ),
       ],
@@ -118,6 +204,7 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => AuthBloc()..add(AppStarted())),
         BlocProvider(create: (context) => PermissionsBloc()),
+        BlocProvider(create: (context) => RoleBloc()),
         BlocProvider(create: (context) => SalesBloc(Supabase.instance.client)),
         BlocProvider(create: (context) => AnalyticsBloc(Supabase.instance.client)..add(const LoadDashboard())),
       ],

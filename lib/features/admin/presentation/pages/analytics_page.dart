@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../bloc/analytics/analytics_bloc.dart';
 import '../bloc/analytics/analytics_event.dart';
 import '../bloc/analytics/analytics_state.dart';
@@ -17,7 +18,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_view_reports',
+      requiredPermission: AppPermission.canViewReports.key,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F7F6),
         body: SafeArea(

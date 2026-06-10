@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
 
 class CategoryManagementPage extends StatefulWidget {
@@ -151,7 +152,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_manage_products',
+      requiredPermission: AppPermission.canManageProducts.key,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Categories'),

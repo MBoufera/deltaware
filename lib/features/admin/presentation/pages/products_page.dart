@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../bloc/product/product_bloc.dart';
 import '../bloc/product/product_event.dart';
 import '../bloc/product/product_state.dart';
@@ -13,7 +14,7 @@ class ProductsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_manage_products',
+      requiredPermission: AppPermission.canManageProducts.key,
       child: BlocProvider(
         create: (context) => ProductBloc()..add(const LoadProducts()),
         child: const ProductsView(),

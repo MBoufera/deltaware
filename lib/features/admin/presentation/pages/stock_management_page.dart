@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
 
 class StockManagementPage extends StatefulWidget {
@@ -115,7 +116,7 @@ class _StockManagementPageState extends State<StockManagementPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_manage_products',
+      requiredPermission: AppPermission.canManageProducts.key,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Stock Management'),

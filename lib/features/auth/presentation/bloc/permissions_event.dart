@@ -7,4 +7,11 @@ class LoadPermissions extends PermissionsEvent {
   LoadPermissions(this.userId, this.role);
 }
 
+class RefreshPermissions extends PermissionsEvent {
+  final String userId;
+  final String role;
+  
+  RefreshPermissions(this.userId, this.role);
+}
+
 class ClearPermissions extends PermissionsEvent {}

@@ -4,6 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
 
 // Represents a row in the data table
@@ -229,7 +230,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_manage_products',
+      requiredPermission: AppPermission.canManageProducts.key,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(

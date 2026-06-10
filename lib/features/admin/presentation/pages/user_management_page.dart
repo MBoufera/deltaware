@@ -1,9 +1,17 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/constants.dart';
+import '../../../../features/auth/presentation/bloc/permissions_bloc.dart';
+import '../../../../features/auth/presentation/bloc/permissions_event.dart';
+import '../bloc/role/role_bloc.dart';
+import '../bloc/role/role_event.dart';
+import '../bloc/role/role_state.dart';
+import '../widgets/role_assignment_dialog.dart';
 
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key});
@@ -40,14 +48,23 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }
   }
 
+  void _refreshPermissionsIfCurrentUser(String userId) {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser != null && currentUser.id == userId) {
+      // Current user's role/permissions changed, refresh them
+      final role = currentUser.userMetadata?['role'] ?? 'admin';
+      context.read<PermissionsBloc>().add(RefreshPermissions(userId, role));
+    }
+  }
+
   void _showPermissionsDialog(Map<String, dynamic> worker) {
     final permissions = Map<String, dynamic>.from(worker['permissions'] ?? {});
-    bool canManageProducts = permissions['can_manage_products'] == true;
-    bool canManageClients = permissions['can_manage_clients'] == true;
-    bool canViewAllSales = permissions['can_view_all_sales'] == true;
-    bool canCancelSales = permissions['can_cancel_sales'] == true;
-    bool canViewReports = permissions['can_view_reports'] == true;
-    bool canManageSettings = permissions['can_manage_settings'] == true;
+    bool canManageProducts = permissions[AppPermission.canManageProducts.key] == true;
+    bool canManageClients = permissions[AppPermission.canManageClients.key] == true;
+    bool canViewAllSales = permissions[AppPermission.canViewAllSales.key] == true;
+    bool canCancelSales = permissions[AppPermission.canCancelSales.key] == true;
+    bool canViewReports = permissions[AppPermission.canViewReports.key] == true;
+    bool canManageSettings = permissions[AppPermission.canManageSettings.key] == true;
 
     showDialog(
       context: context,
@@ -86,27 +103,28 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                   onPressed: () async {
                     Navigator.of(context).pop();
+                    final msg = ScaffoldMessenger.of(context);
                     setState(() => _isLoading = true);
                     try {
                       await _supabase.rpc('update_worker_permissions', params: {
                         'p_user_id': worker['id'],
                         'p_permissions': {
-                          'can_manage_products': canManageProducts,
-                          'can_manage_clients': canManageClients,
-                          'can_view_all_sales': canViewAllSales,
-                          'can_cancel_sales': canCancelSales,
-                          'can_view_reports': canViewReports,
-                          'can_manage_settings': canManageSettings,
+                          AppPermission.canManageProducts.key: canManageProducts,
+                          AppPermission.canManageClients.key: canManageClients,
+                          AppPermission.canViewAllSales.key: canViewAllSales,
+                          AppPermission.canCancelSales.key: canCancelSales,
+                          AppPermission.canViewReports.key: canViewReports,
+                          AppPermission.canManageSettings.key: canManageSettings,
                         }
                       });
                       await _fetchWorkers();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permissions updated')));
+                        msg.showSnackBar(const SnackBar(content: Text('Permissions updated')));
                       }
                     } catch (e) {
                       if (mounted) {
                         setState(() => _isLoading = false);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        msg.showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
                     }
                   },
@@ -120,9 +138,53 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
   }
 
+  void _showRoleAssignmentDialog(BuildContext context, Map<String, dynamic> worker) {
+    final roleBloc = context.read<RoleBloc>();
+    
+    // Load user roles and all roles
+    roleBloc.add(LoadUserRoles(worker['id']));
+    roleBloc.add(const LoadAllRoles());
+
+    showDialog(
+      context: context,
+      builder: (context) => BlocBuilder<RoleBloc, RoleState>(
+        builder: (context, state) {
+          if (state.isLoading && state.userRoles == null) {
+            return const AlertDialog(
+              title: Text('Loading roles...'),
+              content: CircularProgressIndicator(),
+            );
+          }
+
+          return RoleAssignmentDialog(
+            userName: worker['full_name'] ?? 'User',
+            availableRoles: state.roles,
+            assignedRoles: state.userRoles?.roles ?? [],
+            onAssignRole: (roleId) {
+              roleBloc.add(AssignRoleToUser(
+                userId: worker['id'],
+                roleId: roleId,
+              ));
+              // If assigning role to current user, refresh their permissions
+              _refreshPermissionsIfCurrentUser(worker['id']);
+            },
+            onRemoveRole: (roleId) {
+              roleBloc.add(RemoveRoleFromUser(
+                userId: worker['id'],
+                roleId: roleId,
+              ));
+              // If removing role from current user, refresh their permissions
+              _refreshPermissionsIfCurrentUser(worker['id']);
+            },
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildPermissionSwitch(String title, bool value, Function(bool) onChanged) {
     return SwitchListTile(
-      activeColor: const Color(0xFF203A43),
+      activeThumbColor: const Color(0xFF203A43),
       title: Text(title, style: const TextStyle(fontSize: 15)),
       value: value,
       onChanged: onChanged,
@@ -205,12 +267,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       formKey.currentState!.save();
                       Navigator.of(context).pop();
                       await _createWorker(fullName, email, password, {
-                        'can_manage_products': canManageProducts,
-                        'can_manage_clients': canManageClients,
-                        'can_view_all_sales': canViewAllSales,
-                        'can_cancel_sales': false,
-                        'can_view_reports': false,
-                        'can_manage_settings': false,
+                        AppPermission.canManageProducts.key: canManageProducts,
+                        AppPermission.canManageClients.key: canManageClients,
+                        AppPermission.canViewAllSales.key: canViewAllSales,
+                        AppPermission.canCancelSales.key: false,
+                        AppPermission.canViewReports.key: false,
+                        AppPermission.canManageSettings.key: false,
                       });
                     }
                   },
@@ -321,7 +383,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha:0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       )
@@ -357,7 +419,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   
                                   return ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor: const Color(0xFF2C5364).withOpacity(0.1),
+                                      backgroundColor: const Color(0xFF2C5364).withValues(alpha:0.1),
                                       child: Text(
                                         fullName.toString().substring(0, 1).toUpperCase(), 
                                         style: const TextStyle(color: Color(0xFF2C5364), fontWeight: FontWeight.bold)
@@ -366,14 +428,30 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                     title: Text(fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
                                     subtitle: Text('$email\nSales this month: $sales'),
                                     isThreeLine: true,
-                                    trailing: OutlinedButton.icon(
-                                      icon: const Icon(Icons.security, size: 16, color: Color(0xFF2C5364)),
-                                      label: const Text('Permissions', style: TextStyle(color: Color(0xFF2C5364))),
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Color(0xFF2C5364)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () => _showPermissionsDialog(worker),
+                                    trailing: PopupMenuButton(
+                                      icon: const Icon(Icons.more_vert, color: Color(0xFF2C5364)),
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.security_outlined, size: 18, color: Color(0xFF2C5364)),
+                                              SizedBox(width: 12),
+                                              Text('Manage Permissions'),
+                                            ],
+                                          ),
+                                          onTap: () => _showPermissionsDialog(worker),
+                                        ),
+                                        PopupMenuItem(
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.badge_outlined, size: 18, color: Color(0xFF2C5364)),
+                                              SizedBox(width: 12),
+                                              Text('Assign Roles'),
+                                            ],
+                                          ),
+                                          onTap: () => _showRoleAssignmentDialog(context, worker),
+                                        ),
+                                      ],
                                     ),
                                   );
                                 },

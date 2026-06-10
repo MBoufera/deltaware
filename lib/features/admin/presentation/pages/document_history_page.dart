@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
 import 'document_viewer_page.dart';
 
@@ -92,7 +93,7 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: 'can_view_all_sales',
+      requiredPermission: AppPermission.canViewAllSales.key,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F7F6),
         appBar: AppBar(

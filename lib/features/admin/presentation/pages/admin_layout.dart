@@ -3,12 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/permissions_bloc.dart';
 import '../../../auth/presentation/bloc/permissions_event.dart';
 import '../../../auth/presentation/bloc/permissions_state.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 
 class AdminLayout extends StatelessWidget {
   final Widget child;
@@ -80,7 +80,14 @@ class _AdminSidebarState extends State<_AdminSidebar> {
         _userInitial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
       });
 
-      context.read<PermissionsBloc>().add(LoadPermissions(user.id, role));
+      // Check if permissions need to be refreshed
+      // If cache is expired or doesn't exist, load/refresh permissions
+      final permissionsBloc = context.read<PermissionsBloc>();
+      final currentState = permissionsBloc.state;
+      
+      if (currentState.lastLoadedAt == null || currentState.isCacheExpired()) {
+        permissionsBloc.add(LoadPermissions(user.id, role));
+      }
     }
   }
 
@@ -137,7 +144,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                 return ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    if (permissionsState.hasPermission('can_view_reports')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canViewReports.key)) ...[
                       _SidebarItem(
                         icon: Icons.pie_chart_outline,
                         label: 'sidebar.overview'.tr(),
@@ -162,7 +169,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                     ),
                     const SizedBox(height: 8),
 
-                    if (permissionsState.hasPermission('can_manage_products')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canManageProducts.key)) ...[
                       _SidebarItem(
                         icon: Icons.inventory_2_outlined,
                         label: 'sidebar.inventory'.tr(),
@@ -205,7 +212,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (permissionsState.hasPermission('can_view_all_sales')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canViewAllSales.key)) ...[
                       _SidebarItem(
                         icon: Icons.history_edu,
                         label: 'Historique',
@@ -218,7 +225,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (permissionsState.hasPermission('can_manage_clients')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canManageClients.key)) ...[
                       _SidebarItem(
                         icon: Icons.local_shipping_outlined,
                         label: 'sidebar.suppliers'.tr(),
@@ -231,7 +238,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (permissionsState.hasPermission('can_manage_settings')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canManageSettings.key)) ...[
                       _SidebarItem(
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'sidebar.expenses'.tr(),
@@ -244,7 +251,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (permissionsState.hasPermission('can_cancel_sales')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canCancelSales.key)) ...[
                       _SidebarItem(
                         icon: Icons.keyboard_return_outlined,
                         label: 'sidebar.returns'.tr(),
@@ -257,7 +264,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (permissionsState.hasPermission('can_view_reports')) ...[
+                    if (permissionsState.hasPermission(AppPermission.canViewReports.key)) ...[
                       _SidebarItem(
                         icon: Icons.bar_chart_outlined,
                         label: 'sidebar.analytics'.tr(),
@@ -290,6 +297,16 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                           context.go('/dashboard/roles');
                         },
                       ),
+                      const SizedBox(height: 8),
+                      _SidebarItem(
+                        icon: Icons.history_outlined,
+                        label: 'Audit Logs',
+                        isActive: location.startsWith('/dashboard/audit-logs'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/audit-logs');
+                        },
+                      ),
                     ],
                   ],
                 );
@@ -302,7 +319,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.1)),
+                top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
             ),
             child: Column(
@@ -397,8 +414,8 @@ class _SidebarItemState extends State<_SidebarItem> {
   Widget build(BuildContext context) {
     final color = widget.isActive ? Colors.white : (_isHovered ? Colors.white : Colors.white60);
     final bgColor = widget.isActive 
-        ? Colors.blue.withOpacity(0.15) 
-        : (_isHovered ? Colors.white.withOpacity(0.05) : Colors.transparent);
+        ? Colors.blue.withValues(alpha: 0.15) 
+        : (_isHovered ? Colors.white.withValues(alpha: 0.05) : Colors.transparent);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -413,7 +430,7 @@ class _SidebarItemState extends State<_SidebarItem> {
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
             border: widget.isActive 
-                ? Border.all(color: Colors.blue.withOpacity(0.3)) 
+                ? Border.all(color: Colors.blue.withValues(alpha: 0.3)) 
                 : Border.all(color: Colors.transparent),
           ),
           child: Row(
