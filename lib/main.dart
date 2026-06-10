@@ -33,7 +33,7 @@ import 'package:easy_localization/easy_localization.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
-  
+
   await Supabase.initialize(
     url: 'https://dggulctustnlfyadcanx.supabase.co',
     publishableKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
@@ -49,9 +49,11 @@ Future<void> main() async {
   );
 }
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> _adminShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'admin_shell');
-
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
+final GlobalKey<NavigatorState> _adminShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'admin_shell');
 
 final GoRouter _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -59,22 +61,19 @@ final GoRouter _router = GoRouter(
   redirect: (context, state) {
     final session = Supabase.instance.client.auth.currentSession;
     final isGoingToLogin = state.matchedLocation == '/';
-    
+
     if (session != null && isGoingToLogin) {
       return '/dashboard';
     }
-    
+
     if (session == null && !isGoingToLogin) {
       return '/';
     }
-    
+
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const LoginPage(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     ShellRoute(
       navigatorKey: _adminShellNavigatorKey,
       builder: (context, state, child) {
@@ -153,10 +152,13 @@ final GoRouter _router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'add',
-                  builder: (context, state) => RoutePermissionGuard(
+                  builder: (context, state) {
+                    final product = state.extra as Map<String, dynamic>?;
+                    return RoutePermissionGuard(
                     route: '/dashboard/products/add',
-                    child: const AddProductPage(),
-                  ),
+                    child: AddProductPage(product: product),
+                  );
+                  },
                 ),
               ],
             ),
@@ -206,7 +208,11 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => PermissionsBloc()),
         BlocProvider(create: (context) => RoleBloc()),
         BlocProvider(create: (context) => SalesBloc(Supabase.instance.client)),
-        BlocProvider(create: (context) => AnalyticsBloc(Supabase.instance.client)..add(const LoadDashboard())),
+        BlocProvider(
+          create: (context) =>
+              AnalyticsBloc(Supabase.instance.client)
+                ..add(const LoadDashboard()),
+        ),
       ],
       child: MaterialApp.router(
         localizationsDelegates: context.localizationDelegates,
@@ -224,4 +230,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

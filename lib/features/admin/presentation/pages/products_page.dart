@@ -32,6 +32,7 @@ class ProductsView extends StatefulWidget {
 
 class _ProductsViewState extends State<ProductsView> {
   final TextEditingController _searchController = TextEditingController();
+  bool _showLowStockOnly = false;
 
   @override
   void dispose() {
@@ -74,7 +75,7 @@ class _ProductsViewState extends State<ProductsView> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    await context.push('/admin-dashboard/products/add');
+                    await context.push('/dashboard/products/add');
                     // Reload products list when returning
                     if (context.mounted) {
                       context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
@@ -131,11 +132,34 @@ class _ProductsViewState extends State<ProductsView> {
                       },
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    color: Colors.grey.shade600,
-                    onPressed: () {},
-                  )
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _showLowStockOnly = !_showLowStockOnly;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _showLowStockOnly ? Colors.red.shade50 : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _showLowStockOnly ? Colors.red.shade200 : Colors.transparent),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, size: 20, color: _showLowStockOnly ? Colors.red.shade600 : Colors.grey.shade600),
+                          const SizedBox(width: 6),
+                          Text(
+                            'products.low_stock'.tr(),
+                            style: TextStyle(
+                              color: _showLowStockOnly ? Colors.red.shade700 : Colors.grey.shade700,
+                              fontWeight: _showLowStockOnly ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -172,7 +196,15 @@ class _ProductsViewState extends State<ProductsView> {
                         );
                       }
                       
-                      final products = state is ProductsLoaded ? state.products : <Map<String, dynamic>>[];
+                      var products = state is ProductsLoaded ? state.products : <Map<String, dynamic>>[];
+                      
+                      if (_showLowStockOnly) {
+                        products = products.where((product) {
+                          final qty = (product['stock']?['qty_detail'] ?? 0) as num;
+                          final threshold = (product['stock']?['alert_threshold'] ?? 5) as num;
+                          return qty <= threshold;
+                        }).toList();
+                      }
                       
                       if (products.isEmpty) {
                         return Center(
@@ -199,6 +231,7 @@ class _ProductsViewState extends State<ProductsView> {
                             dataRowMaxHeight: 65,
                             horizontalMargin: 24,
                             columnSpacing: 32,
+                            showCheckboxColumn: false,
                             columns: [
                               DataColumn(label: Text('products.col_name'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
                               DataColumn(label: Text('products.col_category'.tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
@@ -210,6 +243,7 @@ class _ProductsViewState extends State<ProductsView> {
                             ],
                             rows: products.map((product) {
                               return DataRow(
+                                onSelectChanged: (_) {}, // Enables hover effect
                                 cells: [
                                   DataCell(
                                     Row(
@@ -284,15 +318,40 @@ class _ProductsViewState extends State<ProductsView> {
                                         IconButton(
                                           icon: const Icon(Icons.edit_outlined, size: 20),
                                           color: Colors.blue.shade600,
-                                          onPressed: () {},
+                                          onPressed: () async {
+                                            await context.push('/dashboard/products/add', extra: product);
+                                            if (context.mounted) {
+                                              context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+                                            }
+                                          },
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.delete_outline, size: 20),
                                           color: Colors.red.shade400,
                                           onPressed: () {
-                                            final id = product['id'] as String;
-                                            context.read<ProductBloc>().add(DeleteProduct(id));
-                                            context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: Text('products.delete_confirm_title'.tr()),
+                                                content: Text('products.delete_confirm_desc'.tr(args: [product['name_fr'] ?? ''])),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context),
+                                                    child: Text('cancel'.tr()),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      final id = product['id'] as String;
+                                                      context.read<ProductBloc>().add(DeleteProduct(id));
+                                                      context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+                                                      Navigator.pop(context);
+                                                    },
+                                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                    child: Text('delete'.tr()),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
                                           },
                                         ),
                                       ],

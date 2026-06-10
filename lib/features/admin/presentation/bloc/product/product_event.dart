@@ -60,6 +60,43 @@ class DeleteProduct extends ProductEvent {
   List<Object?> get props => [id];
 }
 
+class UpdateProduct extends ProductEvent {
+  final String id;
+  final String nameFr;
+  final String? nameAr;
+  final String? refCode;
+  final String categoryName;
+  final double purchasePrice;
+  final double tva;
+  final double wholesaleMargin;
+  final double retailMultiplier;
+
+  const UpdateProduct({
+    required this.id,
+    required this.nameFr,
+    this.nameAr,
+    this.refCode,
+    required this.categoryName,
+    required this.purchasePrice,
+    required this.tva,
+    required this.wholesaleMargin,
+    required this.retailMultiplier,
+  });
+
+  @override
+  List<Object?> get props => [
+        id,
+        nameFr,
+        nameAr,
+        refCode,
+        categoryName,
+        purchasePrice,
+        tva,
+        wholesaleMargin,
+        retailMultiplier,
+      ];
+}
+
 class UpdateStock extends ProductEvent {
   final String productId;
   final double qtySuperGros;

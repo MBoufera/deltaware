@@ -53,7 +53,10 @@
     "col_wholesale": "Wholesale Price",
     "col_retail": "Retail Price",
     "col_actions": "Actions",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "low_stock": "Low Stock",
+    "delete_confirm_title": "Delete Product",
+    "delete_confirm_desc": "Are you sure you want to delete the product {}?"
   },
   "add_product": {
     "title": "Add New Product",
