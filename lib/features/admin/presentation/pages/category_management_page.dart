@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/widgets/permission_guard.dart';
 
 class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
@@ -149,42 +150,45 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF203A43),
+    return PermissionGuard(
+      requiredPermission: 'can_manage_products',
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Categories'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF203A43),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddEditDialog(),
+          backgroundColor: const Color(0xFF203A43),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final cat = _categories[index];
+                  return ListTile(
+                    title: Text(cat['name_fr']),
+                    subtitle: Text('TVA: ${cat['tva_rate']}%'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showAddEditDialog(cat),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteCategory(cat['id']),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEditDialog(),
-        backgroundColor: const Color(0xFF203A43),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _categories.length,
-              itemBuilder: (context, index) {
-                final cat = _categories[index];
-                return ListTile(
-                  title: Text(cat['name_fr']),
-                  subtitle: Text('TVA: ${cat['tva_rate']}%'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showAddEditDialog(cat),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteCategory(cat['id']),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
     );
   }
 }

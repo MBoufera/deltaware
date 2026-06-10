@@ -4,6 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../../core/widgets/permission_guard.dart';
 
 // Represents a row in the data table
 class InventoryItem {
@@ -227,9 +228,11 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
+    return PermissionGuard(
+      requiredPermission: 'can_manage_products',
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -589,6 +592,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

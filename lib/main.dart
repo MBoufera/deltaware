@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/auth/presentation/bloc/permissions_bloc.dart';
 import 'features/admin/presentation/bloc/sales/sales_bloc.dart';
 import 'features/admin/presentation/bloc/analytics/analytics_bloc.dart';
 import 'features/admin/presentation/bloc/analytics/analytics_event.dart';
@@ -12,7 +13,6 @@ import 'features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'features/admin/presentation/pages/user_management_page.dart';
 import 'features/admin/presentation/pages/role_management_page.dart';
 import 'features/admin/presentation/pages/admin_layout.dart';
-import 'features/worker/presentation/pages/worker_layout.dart';
 import 'features/admin/presentation/pages/smart_batch_page.dart';
 import 'features/admin/presentation/pages/products_page.dart';
 import 'features/admin/presentation/pages/add_product_page.dart';
@@ -26,6 +26,8 @@ import 'features/admin/presentation/pages/analytics_page.dart';
 import 'features/admin/presentation/pages/document_history_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
+
+import 'core/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,8 +60,7 @@ final GoRouter _router = GoRouter(
     final isGoingToLogin = state.matchedLocation == '/';
     
     if (session != null && isGoingToLogin) {
-      final role = session.user.userMetadata?['role'] ?? 'admin';
-      return role == 'worker' ? '/worker-dashboard' : '/admin-dashboard';
+      return '/dashboard';
     }
     
     if (session == null && !isGoingToLogin) {
@@ -80,7 +81,7 @@ final GoRouter _router = GoRouter(
       },
       routes: [
         GoRoute(
-          path: '/admin-dashboard',
+          path: '/dashboard',
           builder: (context, state) => const AdminDashboardPage(),
           routes: [
             GoRoute(path: 'pos', builder: (context, state) => const PosPage()),
@@ -105,22 +106,6 @@ final GoRouter _router = GoRouter(
         ),
       ],
     ),
-    ShellRoute(
-      navigatorKey: _workerShellNavigatorKey,
-      builder: (context, state, child) {
-        return WorkerLayout(child: child);
-      },
-      routes: [
-        GoRoute(
-          path: '/worker-dashboard',
-          builder: (context, state) => const DashboardPage(),
-          routes: [
-            GoRoute(path: 'pos', builder: (context, state) => const PosPage()),
-            GoRoute(path: 'products', builder: (context, state) => const ProductsPage()),
-          ],
-        ),
-      ],
-    ),
   ],
 );
 
@@ -132,6 +117,7 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => AuthBloc()..add(AppStarted())),
+        BlocProvider(create: (context) => PermissionsBloc()),
         BlocProvider(create: (context) => SalesBloc(Supabase.instance.client)),
         BlocProvider(create: (context) => AnalyticsBloc(Supabase.instance.client)..add(const LoadDashboard())),
       ],
@@ -152,20 +138,3 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Staff Dashboard'),
-        backgroundColor: const Color(0xFF203A43),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Text('Welcome to Deltaware Staff Dashboard!'),
-      ),
-    );
-  }
-}

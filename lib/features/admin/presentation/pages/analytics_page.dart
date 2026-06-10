@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../bloc/analytics/analytics_bloc.dart';
 import '../bloc/analytics/analytics_event.dart';
 import '../bloc/analytics/analytics_state.dart';
+import '../../../../core/widgets/permission_guard.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -15,9 +16,11 @@ class AnalyticsPage extends StatefulWidget {
 class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
-      body: SafeArea(
+    return PermissionGuard(
+      requiredPermission: 'can_view_reports',
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F6),
+        body: SafeArea(
         child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
           builder: (context, state) {
             if (state is AnalyticsInitial || state is AnalyticsLoading) {
@@ -81,6 +84,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             return const SizedBox();
           },
         ),
+      ),
       ),
     );
   }

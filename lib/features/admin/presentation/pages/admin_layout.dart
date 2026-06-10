@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/permissions_bloc.dart';
+import '../../../auth/presentation/bloc/permissions_event.dart';
+import '../../../auth/presentation/bloc/permissions_state.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 
 class AdminLayout extends StatelessWidget {
   final Widget child;
@@ -9,7 +17,6 @@ class AdminLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check if the screen is large enough for a persistent sidebar
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     return Scaffold(
@@ -21,14 +28,13 @@ class AdminLayout extends StatelessWidget {
               backgroundColor: const Color(0xFF1A2A32),
               foregroundColor: Colors.white,
               elevation: 0,
-              title: const Text('Deltaware Admin', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text('Deltaware', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
       body: Row(
         children: [
           if (isDesktop) const _AdminSidebar(isDrawer: false),
           Expanded(
             child: ClipRRect(
-              // Give the content area rounded corners on desktop for a premium feel
               borderRadius: isDesktop ? const BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)) : BorderRadius.zero,
               child: Container(
                 color: const Color(0xFFF4F7F6),
@@ -42,10 +48,41 @@ class AdminLayout extends StatelessWidget {
   }
 }
 
-class _AdminSidebar extends StatelessWidget {
+class _AdminSidebar extends StatefulWidget {
   final bool isDrawer;
-  
   const _AdminSidebar({required this.isDrawer});
+
+  @override
+  State<_AdminSidebar> createState() => _AdminSidebarState();
+}
+
+class _AdminSidebarState extends State<_AdminSidebar> {
+  String _userInitial = 'U';
+  String _userName = 'User';
+  String _userEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserAndDispatchPermissions();
+  }
+
+  void _loadUserAndDispatchPermissions() {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      final user = session.user;
+      final role = user.userMetadata?['role'] ?? 'admin';
+      final name = user.userMetadata?['full_name'] ?? 'User';
+      
+      setState(() {
+        _userName = name;
+        _userEmail = user.email ?? '';
+        _userInitial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+      });
+
+      context.read<PermissionsBloc>().add(LoadPermissions(user.id, role));
+    }
+  }
 
   void _toggleLanguage(BuildContext context) {
     final currentLocale = context.locale.languageCode;
@@ -91,139 +128,172 @@ class _AdminSidebar extends StatelessWidget {
           
           // Navigation Links
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _SidebarItem(
-                  icon: Icons.pie_chart_outline,
-                  label: 'sidebar.overview'.tr(),
-                  isActive: location == '/admin-dashboard',
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.point_of_sale,
-                  label: 'sidebar.pos'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/pos'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/pos');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.inventory_2_outlined,
-                  label: 'sidebar.inventory'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/products'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/products');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.document_scanner_outlined,
-                  label: 'sidebar.smart_invoice'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/smart-batch'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/smart-batch');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.history_edu,
-                  label: 'Historique',
-                  isActive: location.startsWith('/admin-dashboard/documents'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/documents');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.category_outlined,
-                  label: 'Categories',
-                  isActive: location.startsWith('/admin-dashboard/categories'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/categories');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.storage_outlined,
-                  label: 'Stock',
-                  isActive: location.startsWith('/admin-dashboard/stock'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/stock');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.local_shipping_outlined,
-                  label: 'sidebar.suppliers'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/suppliers'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/suppliers');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: 'sidebar.expenses'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/expenses'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/expenses');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.keyboard_return_outlined,
-                  label: 'sidebar.returns'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/returns'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/returns');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.bar_chart_outlined,
-                  label: 'sidebar.analytics'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/analytics'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/analytics');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.people_outline,
-                  label: 'sidebar.users'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/users'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/users');
-                  },
-                ),
-                const SizedBox(height: 8),
-                _SidebarItem(
-                  icon: Icons.security_outlined,
-                  label: 'sidebar.roles'.tr(),
-                  isActive: location.startsWith('/admin-dashboard/roles'),
-                  onTap: () {
-                    if (isDrawer) Navigator.pop(context);
-                    context.go('/admin-dashboard/roles');
-                  },
-                ),
-              ],
+            child: BlocBuilder<PermissionsBloc, PermissionsState>(
+              builder: (context, permissionsState) {
+                if (permissionsState.isLoading) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.white54));
+                }
+
+                return ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    if (permissionsState.hasPermission('can_view_reports')) ...[
+                      _SidebarItem(
+                        icon: Icons.pie_chart_outline,
+                        label: 'sidebar.overview'.tr(),
+                        isActive: location == '/dashboard',
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    
+                    // POS is accessible by everyone
+                    _SidebarItem(
+                      icon: Icons.point_of_sale,
+                      label: 'sidebar.pos'.tr(),
+                      isActive: location.startsWith('/dashboard/pos'),
+                      onTap: () {
+                        if (widget.isDrawer) Navigator.pop(context);
+                        context.go('/dashboard/pos');
+                      },
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (permissionsState.hasPermission('can_manage_products')) ...[
+                      _SidebarItem(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'sidebar.inventory'.tr(),
+                        isActive: location.startsWith('/dashboard/products'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/products');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _SidebarItem(
+                        icon: Icons.document_scanner_outlined,
+                        label: 'sidebar.smart_invoice'.tr(),
+                        isActive: location.startsWith('/dashboard/smart-batch'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/smart-batch');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _SidebarItem(
+                        icon: Icons.category_outlined,
+                        label: 'Categories',
+                        isActive: location.startsWith('/dashboard/categories'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/categories');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _SidebarItem(
+                        icon: Icons.storage_outlined,
+                        label: 'Stock',
+                        isActive: location.startsWith('/dashboard/stock'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/stock');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.hasPermission('can_view_all_sales')) ...[
+                      _SidebarItem(
+                        icon: Icons.history_edu,
+                        label: 'Historique',
+                        isActive: location.startsWith('/dashboard/documents'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/documents');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.hasPermission('can_manage_clients')) ...[
+                      _SidebarItem(
+                        icon: Icons.local_shipping_outlined,
+                        label: 'sidebar.suppliers'.tr(),
+                        isActive: location.startsWith('/dashboard/suppliers'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/suppliers');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.hasPermission('can_manage_settings')) ...[
+                      _SidebarItem(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'sidebar.expenses'.tr(),
+                        isActive: location.startsWith('/dashboard/expenses'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/expenses');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.hasPermission('can_cancel_sales')) ...[
+                      _SidebarItem(
+                        icon: Icons.keyboard_return_outlined,
+                        label: 'sidebar.returns'.tr(),
+                        isActive: location.startsWith('/dashboard/returns'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/returns');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.hasPermission('can_view_reports')) ...[
+                      _SidebarItem(
+                        icon: Icons.bar_chart_outlined,
+                        label: 'sidebar.analytics'.tr(),
+                        isActive: location.startsWith('/dashboard/analytics'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/analytics');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (permissionsState.isAdmin) ...[
+                      _SidebarItem(
+                        icon: Icons.people_outline,
+                        label: 'sidebar.users'.tr(),
+                        isActive: location.startsWith('/dashboard/users'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/users');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _SidebarItem(
+                        icon: Icons.security_outlined,
+                        label: 'sidebar.roles'.tr(),
+                        isActive: location.startsWith('/dashboard/roles'),
+                        onTap: () {
+                          if (widget.isDrawer) Navigator.pop(context);
+                          context.go('/dashboard/roles');
+                        },
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
           
@@ -232,12 +302,11 @@ class _AdminSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                top: BorderSide(color: Colors.white.withOpacity(0.1)),
               ),
             ),
             child: Column(
               children: [
-                // Language Switcher
                 InkWell(
                   onTap: () => _toggleLanguage(context),
                   child: Row(
@@ -256,22 +325,27 @@ class _AdminSidebar extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.blue.shade900,
-                      child: const Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    BlocBuilder<PermissionsBloc, PermissionsState>(
+                      builder: (context, permissionsState) {
+                        return CircleAvatar(
+                          radius: 20,
+                          backgroundColor: permissionsState.isAdmin ? Colors.blue.shade900 : Colors.teal.shade700,
+                          child: Text(_userInitial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        );
+                      }
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Admin',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          Text(
+                            _userName,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            'admin@deltaware',
+                            _userEmail,
                             style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -281,6 +355,7 @@ class _AdminSidebar extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.logout, color: Colors.white54, size: 20),
                       onPressed: () {
+                        context.read<AuthBloc>().add(LogoutRequested());
                         context.go('/');
                       },
                       tooltip: 'sidebar.logout'.tr(),
@@ -294,7 +369,7 @@ class _AdminSidebar extends StatelessWidget {
       ),
     );
 
-    return isDrawer ? Drawer(child: sidebarContent) : sidebarContent;
+    return widget.isDrawer ? Drawer(child: sidebarContent) : sidebarContent;
   }
 }
 
@@ -322,8 +397,8 @@ class _SidebarItemState extends State<_SidebarItem> {
   Widget build(BuildContext context) {
     final color = widget.isActive ? Colors.white : (_isHovered ? Colors.white : Colors.white60);
     final bgColor = widget.isActive 
-        ? Colors.blue.withValues(alpha: 0.15) 
-        : (_isHovered ? Colors.white.withValues(alpha: 0.05) : Colors.transparent);
+        ? Colors.blue.withOpacity(0.15) 
+        : (_isHovered ? Colors.white.withOpacity(0.05) : Colors.transparent);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -338,7 +413,7 @@ class _SidebarItemState extends State<_SidebarItem> {
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
             border: widget.isActive 
-                ? Border.all(color: Colors.blue.withValues(alpha: 0.3)) 
+                ? Border.all(color: Colors.blue.withOpacity(0.3)) 
                 : Border.all(color: Colors.transparent),
           ),
           child: Row(
