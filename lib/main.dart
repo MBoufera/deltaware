@@ -33,9 +33,9 @@ Future<void> main() async {
   
   await Supabase.initialize(
     url: 'https://dggulctustnlfyadcanx.supabase.co',
-    anonKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
+    publishableKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
   );
-  
+
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en'), Locale('fr'), Locale('ar')],

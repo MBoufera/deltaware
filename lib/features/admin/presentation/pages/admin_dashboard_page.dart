@@ -25,12 +25,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     try {
       final now = DateTime.now();
       final startDate = DateTime(now.year, now.month, 1).toIso8601String();
-      final endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59).toIso8601String();
+      final endDate = DateTime(
+        now.year,
+        now.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toIso8601String();
 
-      final data = await _supabase.rpc('get_analytics', params: {
-        'start_date': startDate,
-        'end_date': endDate,
-      });
+      final data = await _supabase.rpc(
+        'get_analytics',
+        params: {'start_date': startDate, 'end_date': endDate},
+      );
 
       if (mounted) {
         setState(() {
@@ -41,15 +48,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_analytics == null) return const Scaffold(body: Center(child: Text('Failed to load analytics')));
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_analytics == null) {
+      return const Scaffold(
+        body: Center(child: Text('Failed to load analytics')),
+      );
+    }
 
     final kpi = _analytics!['kpi'];
     final timeline = List<dynamic>.from(_analytics!['timeline'] ?? []);
@@ -64,25 +79,66 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('dashboard.business_overview'.tr(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF1A2A32))),
-              Text('Performance ce mois', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+              Text(
+                'dashboard.business_overview'.tr(),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2A32),
+                ),
+              ),
+              Text(
+                'Performance ce mois',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              ),
               const SizedBox(height: 32),
-              
+
               // KPIs
               Row(
                 children: [
-                  Expanded(child: _MetricCard(title: 'Chiffre d\'Affaire HT', value: '${(kpi['total_revenue_ht'] as num).toStringAsFixed(2)} DZD', icon: Icons.attach_money, color: Colors.blue)),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Chiffre d\'Affaire HT',
+                      value:
+                          '${(kpi['total_revenue_ht'] as num).toStringAsFixed(2)} DZD',
+                      icon: Icons.attach_money,
+                      color: Colors.blue,
+                    ),
+                  ),
                   const SizedBox(width: 24),
-                  Expanded(child: _MetricCard(title: 'Bénéfice Brut', value: '${(kpi['gross_profit'] as num).toStringAsFixed(2)} DZD', icon: Icons.trending_up, color: Colors.green)),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Bénéfice Brut',
+                      value:
+                          '${(kpi['gross_profit'] as num).toStringAsFixed(2)} DZD',
+                      icon: Icons.trending_up,
+                      color: Colors.green,
+                    ),
+                  ),
                   const SizedBox(width: 24),
-                  Expanded(child: _MetricCard(title: 'Nombre de Ventes', value: kpi['sales_count'].toString(), icon: Icons.receipt_long, color: Colors.orange)),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Nombre de Ventes',
+                      value: kpi['sales_count'].toString(),
+                      icon: Icons.receipt_long,
+                      color: Colors.orange,
+                    ),
+                  ),
                   const SizedBox(width: 24),
-                  Expanded(child: _MetricCard(title: 'Marge %', value: '${(kpi['margin_percent'] as num).toStringAsFixed(1)}%', icon: Icons.percent, color: Colors.purple)),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Marge %',
+                      value:
+                          '${(kpi['margin_percent'] as num).toStringAsFixed(1)}%',
+                      icon: Icons.percent,
+                      color: Colors.purple,
+                    ),
+                  ),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Chart & Leaderboards
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,11 +149,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     child: Container(
                       height: 400,
                       padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Évolution des Revenus & Bénéfices', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const Text(
+                            'Évolution des Revenus & Bénéfices',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 24),
                           Expanded(child: _buildTimelineChart(timeline)),
                         ],
@@ -105,20 +176,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                   ),
                   const SizedBox(width: 32),
-                  
+
                   // Side Panels
                   Expanded(
                     flex: 3,
                     child: Column(
                       children: [
-                        _buildLeaderboard('Meilleurs Vendeurs', topWorkers, (w) => w['name'], (w) => '${(w['revenue_ht'] as num).toStringAsFixed(0)} DZD'),
+                        _buildLeaderboard(
+                          'Meilleurs Vendeurs',
+                          topWorkers,
+                          (w) => w['name'],
+                          (w) =>
+                              '${(w['revenue_ht'] as num).toStringAsFixed(0)} DZD',
+                        ),
                         const SizedBox(height: 24),
-                        _buildLeaderboard('Top Produits', topProducts, (p) => p['name_fr'], (p) => '${p['qty_sold']} unités'),
+                        _buildLeaderboard(
+                          'Top Produits',
+                          topProducts,
+                          (p) => p['name_fr'],
+                          (p) => '${p['qty_sold']} unités',
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -127,7 +209,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildTimelineChart(List<dynamic> timeline) {
-    if (timeline.isEmpty) return const Center(child: Text('Aucune donnée pour ce mois'));
+    if (timeline.isEmpty) {
+      return const Center(child: Text('Aucune donnée pour ce mois'));
+    }
 
     final spotsRevenue = <FlSpot>[];
     final spotsProfit = <FlSpot>[];
@@ -137,9 +221,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final t = timeline[i];
       final rev = (t['revenue_ht'] as num).toDouble();
       final prof = (t['gross_profit'] as num).toDouble();
-      
+
       if (rev > maxY) maxY = rev;
-      
+
       spotsRevenue.add(FlSpot(i.toDouble(), rev));
       spotsProfit.add(FlSpot(i.toDouble(), prof));
     }
@@ -148,18 +232,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       LineChartData(
         gridData: FlGridData(show: true, drawVerticalLine: false),
         titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              final index = value.toInt();
-              if (index < 0 || index >= timeline.length) return const Text('');
-              final dateStr = timeline[index]['date_label'] as String;
-              final day = dateStr.split('-').last;
-              return Padding(padding: const EdgeInsets.only(top: 8), child: Text(day, style: const TextStyle(fontSize: 10)));
-            },
-          )),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= timeline.length) {
+                  return const Text('');
+                }
+                final dateStr = timeline[index]['date_label'] as String;
+                final day = dateStr.split('-').last;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(day, style: const TextStyle(fontSize: 10)),
+                );
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(show: false),
         minX: 0,
@@ -174,7 +269,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(show: true, color: Colors.blue.withOpacity(0.1)),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.blue.withValues(alpha: 0.1),
+            ),
           ),
           LineChartBarData(
             spots: spotsProfit,
@@ -183,30 +281,73 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(show: true, color: Colors.green.withOpacity(0.1)),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.green.withValues(alpha: 0.1),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLeaderboard(String title, List<dynamic> items, String Function(dynamic) getTitle, String Function(dynamic) getSubtitle) {
+  Widget _buildLeaderboard(
+    String title,
+    List<dynamic> items,
+    String Function(dynamic) getTitle,
+    String Function(dynamic) getSubtitle,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          items.isEmpty ? const Text('Aucune donnée') : Column(
-            children: items.map((item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(backgroundColor: const Color(0xFF1A2A32), child: Text(getTitle(item).substring(0, 1).toUpperCase(), style: const TextStyle(color: Colors.white))),
-              title: Text(getTitle(item), style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-              trailing: Text(getSubtitle(item), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-            )).toList(),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 16),
+          items.isEmpty
+              ? const Text('Aucune donnée')
+              : Column(
+                  children: items
+                      .map(
+                        (item) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF1A2A32),
+                            child: Text(
+                              getTitle(item).substring(0, 1).toUpperCase(),
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          title: Text(
+                            getTitle(item),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Text(
+                            getSubtitle(item),
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
         ],
       ),
     );
@@ -219,7 +360,12 @@ class _MetricCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _MetricCard({required this.title, required this.value, required this.icon, required this.color});
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +376,7 @@ class _MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -241,7 +387,7 @@ class _MetricCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 32),
@@ -251,11 +397,18 @@ class _MetricCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                Text(
+                  title,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A2A32)),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A2A32),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

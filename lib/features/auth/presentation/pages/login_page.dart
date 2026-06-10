@@ -253,6 +253,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           children: [
             TextButton(
               onPressed: () async {
+                final msg = ScaffoldMessenger.of(context);
                 final email = _emailController.text.trim();
                 final password = _passwordController.text;
                 if (email.isNotEmpty && password.isNotEmpty) {
@@ -262,19 +263,19 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       password: password,
                     );
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      msg.showSnackBar(
                         const SnackBar(content: Text('Account created! You can now sign in.'), backgroundColor: Colors.green),
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      msg.showSnackBar(
                         SnackBar(content: Text('Sign up error: $e'), backgroundColor: Colors.red),
                       );
                     }
                   }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  msg.showSnackBar(
                     const SnackBar(content: Text('Please enter email and password to register'), backgroundColor: Colors.orange),
                   );
                 }

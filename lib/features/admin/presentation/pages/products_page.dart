@@ -69,7 +69,7 @@ class _ProductsViewState extends State<ProductsView> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    final result = await context.push('/admin-dashboard/products/add');
+                    await context.push('/admin-dashboard/products/add');
                     // Reload products list when returning
                     if (context.mounted) {
                       context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));

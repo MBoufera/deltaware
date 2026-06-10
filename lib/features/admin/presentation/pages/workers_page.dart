@@ -94,6 +94,7 @@ class _WorkersPageState extends State<WorkersPage> {
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.of(context).pop();
+                    final msg = ScaffoldMessenger.of(context);
                     try {
                       await _supabase.rpc('update_worker_permissions', params: {
                         'p_user_id': worker['id'],
@@ -108,11 +109,11 @@ class _WorkersPageState extends State<WorkersPage> {
                       });
                       _fetchWorkers();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permissions updated')));
+                        msg.showSnackBar(const SnackBar(content: Text('Permissions updated')));
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        msg.showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
                     }
                   },
@@ -152,7 +153,7 @@ class _WorkersPageState extends State<WorkersPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                 ),
                 child: ListView.separated(
                   shrinkWrap: true,

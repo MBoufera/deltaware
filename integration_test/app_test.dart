@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -76,7 +78,7 @@ void main() {
         expect(find.byIcon(Icons.add_circle_outline), findsWidgets);
         expect(find.text('CONFIRM SALE'), findsWidgets);
       } else {
-        print('No products found in DB to tap, but POS loaded successfully.');
+        log('No products found in DB to tap, but POS loaded successfully.');
       }
     });
   });

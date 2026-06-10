@@ -173,7 +173,7 @@ class _ClientSelectionDialogState extends State<ClientSelectionDialog> {
       child: Column(
         children: [
           DropdownButtonFormField<String>(
-            value: _clientType,
+            initialValue: _clientType,
             decoration: const InputDecoration(labelText: 'Client Type', border: OutlineInputBorder()),
             items: const [
               DropdownMenuItem(value: 'particulier', child: Text('Particulier')),

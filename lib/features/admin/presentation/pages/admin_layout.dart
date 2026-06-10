@@ -246,7 +246,7 @@ class _AdminSidebar extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'sidebar.language'.tr() + ' (${context.locale.languageCode.toUpperCase()})',
+                          '${'sidebar.language'.tr()} (${context.locale.languageCode.toUpperCase()})',
                           style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
                         ),
                       ),

@@ -135,7 +135,7 @@ class _StockManagementPageState extends State<StockManagementPage> {
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                    value: _selectedProduct,
+                    initialValue: _selectedProduct,
                     items: _products.map((p) {
                       return DropdownMenuItem<Map<String, dynamic>>(
                         value: p,
