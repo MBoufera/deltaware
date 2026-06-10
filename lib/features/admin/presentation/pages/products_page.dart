@@ -5,15 +5,19 @@ import 'package:easy_localization/easy_localization.dart';
 import '../bloc/product/product_bloc.dart';
 import '../bloc/product/product_event.dart';
 import '../bloc/product/product_state.dart';
+import '../../../../core/widgets/permission_guard.dart';
 
 class ProductsPage extends StatelessWidget {
   const ProductsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ProductBloc()..add(const LoadProducts()),
-      child: const ProductsView(),
+    return PermissionGuard(
+      requiredPermission: 'can_manage_products',
+      child: BlocProvider(
+        create: (context) => ProductBloc()..add(const LoadProducts()),
+        child: const ProductsView(),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/widgets/permission_guard.dart';
 
 class StockManagementPage extends StatefulWidget {
   const StockManagementPage({super.key});
@@ -113,101 +114,104 @@ class _StockManagementPageState extends State<StockManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stock Management'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF203A43),
-        elevation: 0,
-      ),
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DropdownButtonFormField<Map<String, dynamic>>(
-                    decoration: InputDecoration(
-                      labelText: 'Select Product',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    value: _selectedProduct,
-                    items: _products.map((p) {
-                      return DropdownMenuItem<Map<String, dynamic>>(
-                        value: p,
-                        child: Text('${p['ref_code'] ?? 'No Ref'} - ${p['name_fr']}'),
-                      );
-                    }).toList(),
-                    onChanged: _onProductSelected,
-                  ),
-                  const SizedBox(height: 24),
-                  if (_selectedProduct != null) ...[
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildStockCard('Super Gros', _superGrosController, Colors.blue.shade50),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStockCard('Gros', _grosController, Colors.purple.shade50),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStockCard('Détail', _detailController, Colors.orange.shade50),
-                            ),
-                          ],
-                        ),
+    return PermissionGuard(
+      requiredPermission: 'can_manage_products',
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Stock Management'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF203A43),
+          elevation: 0,
+        ),
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<Map<String, dynamic>>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Product',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.white,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: 200,
-                      child: TextField(
-                        controller: _alertThresholdController,
-                        decoration: InputDecoration(
-                          labelText: 'Alert Threshold',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
+                      value: _selectedProduct,
+                      items: _products.map((p) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: p,
+                          child: Text('${p['ref_code'] ?? 'No Ref'} - ${p['name_fr']}'),
+                        );
+                      }).toList(),
+                      onChanged: _onProductSelected,
                     ),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: _saveStock,
-                        icon: const Icon(Icons.save),
-                        label: const Text('Save Stock Adjustments'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF203A43),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    if (_selectedProduct != null) ...[
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildStockCard('Super Gros', _superGrosController, Colors.blue.shade50),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildStockCard('Gros', _grosController, Colors.purple.shade50),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildStockCard('Détail', _detailController, Colors.orange.shade50),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ] else ...[
-                    const Expanded(
-                      child: Center(
-                        child: Text(
-                          'Please select a product to manage stock.',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: 200,
+                        child: TextField(
+                          controller: _alertThresholdController,
+                          decoration: InputDecoration(
+                            labelText: 'Alert Threshold',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          keyboardType: TextInputType.number,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveStock,
+                          icon: const Icon(Icons.save),
+                          label: const Text('Save Stock Adjustments'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF203A43),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const Expanded(
+                        child: Center(
+                          child: Text(
+                            'Please select a product to manage stock.',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 

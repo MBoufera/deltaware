@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/widgets/permission_guard.dart';
 import 'document_viewer_page.dart';
 
 class DocumentHistoryPage extends StatefulWidget {
@@ -90,112 +91,115 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
-      appBar: AppBar(
-        title: const Text('Historique des Documents'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF203A43),
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Rechercher par numéro, client ou type...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+    return PermissionGuard(
+      requiredPermission: 'can_view_all_sales',
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F6),
+        appBar: AppBar(
+          title: const Text('Historique des Documents'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF203A43),
+          elevation: 0,
+        ),
+        body: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Rechercher par numéro, client ou type...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
                 ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
+                onChanged: _filterSales,
               ),
-              onChanged: _filterSales,
             ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredSales.isEmpty
-                    ? const Center(child: Text('Aucun document trouvé'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredSales.length,
-                        itemBuilder: (context, index) {
-                          final sale = _filteredSales[index];
-                          final clientName = sale['clients']?['name'] ?? 'Client Standard (Détail)';
-                          final totalTtc = (sale['total_ttc'] as num?)?.toDouble() ?? 0.0;
-                          
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: CircleAvatar(
-                                backgroundColor: _getBadgeColor(sale['sale_type']).withAlpha(50),
-                                child: Icon(Icons.receipt_long, color: _getBadgeColor(sale['sale_type'])),
-                              ),
-                              title: Row(
-                                children: [
-                                  Text(
-                                    sale['sale_number'] ?? 'N/A',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: _getBadgeColor(sale['sale_type']),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _formatSaleType(sale['sale_type']),
-                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredSales.isEmpty
+                      ? const Center(child: Text('Aucun document trouvé'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredSales.length,
+                          itemBuilder: (context, index) {
+                            final sale = _filteredSales[index];
+                            final clientName = sale['clients']?['name'] ?? 'Client Standard (Détail)';
+                            final totalTtc = (sale['total_ttc'] as num?)?.toDouble() ?? 0.0;
+                            
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: CircleAvatar(
+                                  backgroundColor: _getBadgeColor(sale['sale_type']).withAlpha(50),
+                                  child: Icon(Icons.receipt_long, color: _getBadgeColor(sale['sale_type'])),
+                                ),
+                                title: Row(
                                   children: [
-                                    Text('Client: $clientName'),
-                                    const SizedBox(height: 4),
-                                    Text('Date: ${_formatDate(sale['created_at'])}'),
+                                    Text(
+                                      sale['sale_number'] ?? 'N/A',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _getBadgeColor(sale['sale_type']),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        _formatSaleType(sale['sale_type']),
+                                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${totalTtc.toStringAsFixed(2)} DZD',
-                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.green),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Client: $clientName'),
+                                      const SizedBox(height: 4),
+                                      Text('Date: ${_formatDate(sale['created_at'])}'),
+                                    ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  const Icon(Icons.picture_as_pdf, color: Colors.red),
-                                ],
+                                ),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${totalTtc.toStringAsFixed(2)} DZD',
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.green),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Icon(Icons.picture_as_pdf, color: Colors.red),
+                                  ],
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DocumentViewerPage(saleId: sale['id']),
+                                    ),
+                                  );
+                                },
                               ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DocumentViewerPage(saleId: sale['id']),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -55,11 +55,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            if (_selectedRole == UserRole.admin) {
-              context.go('/admin-dashboard');
-            } else {
-              context.go('/dashboard');
-            }
+            context.go('/dashboard');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
