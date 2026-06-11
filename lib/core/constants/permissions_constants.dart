@@ -1,7 +1,3 @@
-/// Centralized permission constants and registry
-/// All permission keys used throughout the application
-/// Prevents typos and provides a single source of truth
-
 enum AppPermission {
   canManageProducts,
   canManageClients,

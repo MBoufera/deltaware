@@ -4,7 +4,7 @@
 -- Create audit_logs table
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+  admin_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   action VARCHAR(50) NOT NULL, -- assign_role, remove_role, edit_role, create_role, update_role, delete_role, edit_permissions, etc.
   resource_type VARCHAR(50) NOT NULL, -- user, role, permission, setting, etc.
   resource_id UUID, -- ID of the affected resource (user_id, role_id, etc.)
@@ -27,11 +27,11 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 -- Create indexes for efficient querying
-CREATE INDEX idx_audit_logs_admin_id ON audit_logs(admin_id);
-CREATE INDEX idx_audit_logs_resource_id ON audit_logs(resource_id);
-CREATE INDEX idx_audit_logs_action ON audit_logs(action);
-CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
-CREATE INDEX idx_audit_logs_status ON audit_logs(status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource_id ON audit_logs(resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs(status);
 
 -- Audit log function to be called when logging actions
 CREATE OR REPLACE FUNCTION log_audit_action(
@@ -185,7 +185,7 @@ BEGIN
       NEW.user_id,
       (SELECT email FROM auth.users WHERE id = NEW.user_id),
       NULL,
-      jsonb_build_object('role_id', NEW.role_id, 'created_at', NEW.created_at),
+      jsonb_build_object('role_id', NEW.role_id, 'assigned_at', NEW.assigned_at),
       'Role assignment',
       'success'
     );

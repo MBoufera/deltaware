@@ -111,21 +111,21 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 -- Roles - everyone can read, only admins can modify
 CREATE POLICY "Allow read roles for everyone" ON public.roles FOR SELECT USING (true);
 CREATE POLICY "Allow insert roles for admins" ON public.roles FOR INSERT WITH CHECK (
-    (auth.jwt()->>'role')::text = 'admin' OR
+    (auth.jwt()->'user_metadata'->>'role')::text = 'admin' OR
     EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
             WHERE ur.user_id = auth.uid() AND p.key = 'can_manage_roles')
 );
 CREATE POLICY "Allow update roles for admins" ON public.roles FOR UPDATE USING (
-    ((auth.jwt()->>'role')::text = 'admin' AND is_system = false) OR
+    ((auth.jwt()->'user_metadata'->>'role')::text = 'admin' AND is_system = false) OR
     (EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
             WHERE ur.user_id = auth.uid() AND p.key = 'can_manage_roles' AND is_system = false))
 );
 CREATE POLICY "Allow delete roles for admins" ON public.roles FOR DELETE USING (
-    ((auth.jwt()->>'role')::text = 'admin' AND is_system = false) OR
+    ((auth.jwt()->'user_metadata'->>'role')::text = 'admin' AND is_system = false) OR
     (EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
@@ -138,14 +138,14 @@ CREATE POLICY "Allow read permissions for everyone" ON public.permissions FOR SE
 -- Role Permissions - read-only for all
 CREATE POLICY "Allow read role_permissions for everyone" ON public.role_permissions FOR SELECT USING (true);
 CREATE POLICY "Allow insert role_permissions for admins" ON public.role_permissions FOR INSERT WITH CHECK (
-    (auth.jwt()->>'role')::text = 'admin' OR
+    (auth.jwt()->'user_metadata'->>'role')::text = 'admin' OR
     EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
             WHERE ur.user_id = auth.uid() AND p.key = 'can_manage_roles')
 );
 CREATE POLICY "Allow delete role_permissions for admins" ON public.role_permissions FOR DELETE USING (
-    (auth.jwt()->>'role')::text = 'admin' OR
+    (auth.jwt()->'user_metadata'->>'role')::text = 'admin' OR
     EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
@@ -155,14 +155,14 @@ CREATE POLICY "Allow delete role_permissions for admins" ON public.role_permissi
 -- User Roles - users can read their own, admins can modify
 CREATE POLICY "Allow read user_roles for everyone" ON public.user_roles FOR SELECT USING (true);
 CREATE POLICY "Allow insert user_roles for admins" ON public.user_roles FOR INSERT WITH CHECK (
-    (auth.jwt()->>'role')::text = 'admin' OR
+    (auth.jwt()->'user_metadata'->>'role')::text = 'admin' OR
     EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
             WHERE ur.user_id = auth.uid() AND p.key = 'can_manage_users')
 );
 CREATE POLICY "Allow delete user_roles for admins" ON public.user_roles FOR DELETE USING (
-    (auth.jwt()->>'role')::text = 'admin' OR
+    (auth.jwt()->'user_metadata'->>'role')::text = 'admin' OR
     EXISTS (SELECT 1 FROM public.user_roles ur 
             JOIN public.role_permissions rp ON ur.role_id = rp.role_id
             JOIN public.permissions p ON rp.permission_id = p.id
@@ -186,7 +186,7 @@ BEGIN
     -- If user is admin, return all permissions
     SELECT p.key
     FROM public.permissions p
-    WHERE (SELECT (auth.jwt()->>'role')::text) = 'admin';
+    WHERE (SELECT (auth.jwt()->'user_metadata'->>'role')::text) = 'admin';
 END;
 $$;
 

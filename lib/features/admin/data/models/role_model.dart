@@ -25,7 +25,9 @@ class AppPermission extends Equatable {
       name: json['name'] as String,
       description: json['description'] as String?,
       category: json['category'] as String? ?? 'general',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String) 
+          : DateTime.now(),
     );
   }
 
@@ -95,8 +97,14 @@ class Role extends Equatable {
       permissions: List<AppPermission>.from(
         permList.map((p) => AppPermission.fromJson(p as Map<String, dynamic>)),
       ),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String? ?? json['created_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String) 
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at'] as String) 
+          : json['created_at'] != null 
+              ? DateTime.parse(json['created_at'] as String) 
+              : DateTime.now(),
       createdBy: json['created_by'] as String?,
     );
   }
