@@ -291,7 +291,13 @@ class _PosPageState extends State<PosPage> {
             child: ElevatedButton(
               onPressed: (state.cart.isEmpty || state is SalesSubmitting) 
                   ? null 
-                  : () => context.read<SalesBloc>().add(SubmitSale()),
+                  : () {
+                      if (['gros', 'bon_livraison', 'bon_commande', 'gouvernement'].contains(state.saleType) && state.selectedClient == null) {
+                        _showClientDialog(state.saleType);
+                      } else {
+                        context.read<SalesBloc>().add(SubmitSale());
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF203A43),
                 foregroundColor: Colors.white,

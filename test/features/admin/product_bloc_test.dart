@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -8,26 +9,52 @@ import 'package:deltaware/features/admin/presentation/bloc/product/product_state
 
 class MockSupabaseClient extends Mock implements SupabaseClient {}
 class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
-class MockPostgrestFilterBuilder extends Mock implements PostgrestFilterBuilder<List<Map<String, dynamic>>> {}
-class MockPostgrestTransformBuilder extends Mock implements PostgrestTransformBuilder<List<Map<String, dynamic>>> {}
+
+class FakePostgrestFilterBuilder<T> extends Fake implements PostgrestFilterBuilder<T> {
+  final FutureOr<T> Function() _valueFn;
+
+  FakePostgrestFilterBuilder(T value) : _valueFn = (() => value);
+  FakePostgrestFilterBuilder.error(Object error) : _valueFn = (() => throw error);
+
+  @override
+  PostgrestFilterBuilder<T> eq(String column, Object value) => this;
+
+  @override
+  PostgrestFilterBuilder<T> order(String column, {bool? ascending, bool? nullsFirst, String? referencedTable}) => this;
+
+  @override
+  Future<R> then<R>(FutureOr<R> Function(T) onValue, {Function? onError}) async {
+    try {
+      final val = await _valueFn();
+      final result = onValue(val);
+      if (result is Future<R>) {
+        return await result;
+      }
+      return result;
+    } catch (e, stackTrace) {
+      if (onError != null) {
+        final errResult = onError(e, stackTrace);
+        if (errResult is Future<R>) {
+          return await errResult;
+        }
+        return errResult as R;
+      }
+      rethrow;
+    }
+  }
+}
 
 void main() {
   group('ProductBloc', () {
     late ProductBloc productBloc;
     late MockSupabaseClient mockSupabaseClient;
     late MockSupabaseQueryBuilder mockProductsQuery;
-    late MockPostgrestFilterBuilder mockFilterBuilder;
-    late MockPostgrestTransformBuilder mockTransformBuilder;
 
     setUp(() {
       mockSupabaseClient = MockSupabaseClient();
       mockProductsQuery = MockSupabaseQueryBuilder();
-      mockFilterBuilder = MockPostgrestFilterBuilder();
-      mockTransformBuilder = MockPostgrestTransformBuilder();
 
-      when(() => mockSupabaseClient.from('products')).thenReturn(mockProductsQuery);
-      when(() => mockProductsQuery.select(any())).thenReturn(mockFilterBuilder);
-      when(() => mockFilterBuilder.order(any(), ascending: any())).thenReturn(mockTransformBuilder);
+      when(() => mockSupabaseClient.from('products')).thenAnswer((_) => mockProductsQuery);
     });
 
     tearDown(() {
@@ -42,6 +69,7 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductsLoaded] when LoadProducts is successful',
       build: () {
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
         final dummyProducts = [
           {
             'id': '1',
@@ -51,11 +79,11 @@ void main() {
             'stock': {'qty_detail': 10.0, 'alert_threshold': 5.0}
           }
         ];
-        when(() => mockTransformBuilder.then(any())).thenAnswer((invocation) async {
-          final callback = invocation.positionalArguments[0] as Future<List<Map<String, dynamic>>> Function(List<Map<String, dynamic>>);
-          return callback(dummyProducts);
-        });
-        return ProductBloc(supabase: mockSupabaseClient);
+        
+        when(() => mockProductsQuery.select('*, categories(name_fr), product_pricing(*), stock(*)')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<List<Map<String, dynamic>>>(dummyProducts),
+        );
+        return productBloc;
       },
       act: (bloc) => bloc.add(const LoadProducts()),
       expect: () => [
@@ -67,8 +95,11 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductError] when LoadProducts fails',
       build: () {
-        when(() => mockTransformBuilder.then(any())).thenThrow(Exception('Database error'));
-        return ProductBloc(supabase: mockSupabaseClient);
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
+        when(() => mockProductsQuery.select('*, categories(name_fr), product_pricing(*), stock(*)')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<List<Map<String, dynamic>>>.error(Exception('Database error')),
+        );
+        return productBloc;
       },
       act: (bloc) => bloc.add(const LoadProducts()),
       expect: () => [
@@ -80,13 +111,11 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductOperationSuccess] when DeleteProduct is successful',
       build: () {
-        when(() => mockProductsQuery.delete()).thenReturn(mockFilterBuilder);
-        when(() => mockFilterBuilder.eq(any(), any())).thenReturn(mockFilterBuilder);
-        when(() => mockFilterBuilder.then(any())).thenAnswer((invocation) async {
-          final callback = invocation.positionalArguments[0] as Future<dynamic> Function(dynamic);
-          return callback([]);
-        });
-        return ProductBloc(supabase: mockSupabaseClient);
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
+        when(() => mockProductsQuery.delete()).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>([]),
+        );
+        return productBloc;
       },
       act: (bloc) => bloc.add(const DeleteProduct('1')),
       expect: () => [

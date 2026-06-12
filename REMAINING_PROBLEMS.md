@@ -43,7 +43,7 @@
    - `update_role()` - requires can_manage_roles
 
 3. **Added security features**
-   - Returns 403 Forbidden (ERRCODE = '403') when user lacks permission
+   - Returns 403 Forbidden (ERRCODE = '42501') when user lacks permission
    - Prevents self-privilege escalation (users can't give themselves admin)
    - Permission checks happen before any database operations
 
@@ -131,7 +131,7 @@
    - `update_role()` - requires can_manage_roles
 
 3. **Added security features**
-   - Returns 403 Forbidden (ERRCODE = '403') when user lacks permission
+   - Returns 403 Forbidden (ERRCODE = '42501') when user lacks permission
    - Prevents self-privilege escalation (users can't give themselves admin)
    - Permission checks happen before any database operations
 

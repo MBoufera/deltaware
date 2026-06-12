@@ -41,7 +41,7 @@ void main() {
 
     test('calculateItemTtc correctly calculates 9% TVA', () {
       final ttc = SaleCalculator.calculateItemTtc(100.0, 2, 0.09);
-      expect(ttc, 218.0); // (100 * 2) * 1.09
+      expect(ttc, closeTo(218.0, 0.00001)); // (100 * 2) * 1.09
     });
 
     test('calculateTotalHt sums correctly across mixed items', () {
