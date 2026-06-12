@@ -21,7 +21,7 @@ BEGIN
     END IF;
     
     -- Check if user is admin
-    IF (auth.jwt()->>'role')::text = 'admin' THEN
+    IF (auth.jwt()->'user_metadata'->>'role')::text = 'admin' THEN
         RETURN true;
     END IF;
     
@@ -77,7 +77,7 @@ DECLARE
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_users') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
     END IF;
     
     SELECT jsonb_agg(worker_row) INTO result
@@ -107,7 +107,7 @@ AS $$
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_users') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
     END IF;
     
     -- Prevent users from giving themselves admin permissions
@@ -150,7 +150,7 @@ AS $$
 BEGIN
     -- Check permission
     IF NOT (check_user_permission('can_manage_users') OR check_user_permission('can_manage_roles')) THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_users or can_manage_roles required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_users or can_manage_roles required' USING ERRCODE = '42501';
     END IF;
     
     INSERT INTO public.user_roles (user_id, role_id, assigned_by)
@@ -170,7 +170,7 @@ AS $$
 BEGIN
     -- Check permission
     IF NOT (check_user_permission('can_manage_users') OR check_user_permission('can_manage_roles')) THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_users or can_manage_roles required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_users or can_manage_roles required' USING ERRCODE = '42501';
     END IF;
     
     DELETE FROM public.user_roles
@@ -191,7 +191,7 @@ DECLARE
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_roles') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '42501';
     END IF;
     
     -- Create the role
@@ -219,7 +219,7 @@ AS $$
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_roles') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '42501';
     END IF;
     
     -- Check if it's a system role (can't modify those)
@@ -296,8 +296,8 @@ DECLARE
     result JSONB;
 BEGIN
     -- Only admins can view permission logs
-    IF NOT (auth.jwt()->>'role')::text = 'admin' AND NOT check_user_permission('can_view_audit_logs') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_view_audit_logs required' USING ERRCODE = '403';
+    IF NOT (auth.jwt()->'user_metadata'->>'role')::text = 'admin' AND NOT check_user_permission('can_view_audit_logs') THEN
+        RAISE EXCEPTION 'Insufficient permissions: can_view_audit_logs required' USING ERRCODE = '42501';
     END IF;
     
     SELECT jsonb_agg(log_row) INTO result

@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' show log;
 
@@ -168,19 +169,21 @@ class AuditService {
     DateTime? endDate,
   }) async {
     try {
-      final response = await _supabase.rpc(
-        'get_audit_logs',
-        params: {
-          'p_limit': limit,
-          'p_offset': offset,
-          'p_action': action,
-          'p_admin_id': adminId,
-          'p_resource_type': resourceType,
-          'p_status': status,
-          'p_start_date': startDate?.toIso8601String(),
-          'p_end_date': endDate?.toIso8601String(),
-        },
-      ) as List;
+      final response =
+          await _supabase.rpc(
+                'get_audit_logs',
+                params: {
+                  'p_limit': limit,
+                  'p_offset': offset,
+                  'p_action': action,
+                  'p_admin_id': adminId,
+                  'p_resource_type': resourceType,
+                  'p_status': status,
+                  'p_start_date': startDate?.toIso8601String(),
+                  'p_end_date': endDate?.toIso8601String(),
+                },
+              )
+              as List;
 
       return response
           .map((item) => AuditLog.fromJson(item as Map<String, dynamic>))
@@ -222,10 +225,9 @@ class AuditService {
   /// Get audit statistics for the past N days
   Future<List<AuditStatistics>> getAuditStatistics({int days = 7}) async {
     try {
-      final response = await _supabase.rpc(
-        'get_audit_statistics',
-        params: {'p_days': days},
-      ) as List;
+      final response =
+          await _supabase.rpc('get_audit_statistics', params: {'p_days': days})
+              as List;
 
       return response
           .map((item) => AuditStatistics.fromJson(item as Map<String, dynamic>))
