@@ -1,6 +1,3 @@
-/// Extended permission model with granular control
-/// Supports: per-feature (view/edit), resource-level (own/all), time-based, conditional
-
 enum PermissionGranularity {
   /// User can only view/read data
   view,

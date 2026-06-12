@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:developer' show log;
 
 /// Model for audit log entries
 class AuditLog {
@@ -150,7 +151,7 @@ class AuditService {
       );
       return response as String?;
     } catch (e) {
-      print('Error logging audit action: $e');
+      log('Error logging audit action: $e');
       rethrow;
     }
   }
@@ -185,7 +186,7 @@ class AuditService {
           .map((item) => AuditLog.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('Error fetching audit logs: $e');
+      log('Error fetching audit logs: $e');
       rethrow;
     }
   }
@@ -213,7 +214,7 @@ class AuditService {
       );
       return response as int;
     } catch (e) {
-      print('Error fetching audit logs count: $e');
+      log('Error fetching audit logs count: $e');
       rethrow;
     }
   }
@@ -230,7 +231,7 @@ class AuditService {
           .map((item) => AuditStatistics.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('Error fetching audit statistics: $e');
+      log('Error fetching audit statistics: $e');
       rethrow;
     }
   }

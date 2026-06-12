@@ -18,6 +18,7 @@ class RoleBloc extends Bloc<RoleEvent, RoleState> {
     on<DeleteRole>(_onDeleteRole);
     on<AssignRoleToUser>(_onAssignRoleToUser);
     on<RemoveRoleFromUser>(_onRemoveRoleFromUser);
+    on<SyncUserRoles>(_onSyncUserRoles);
     on<ClearRoleError>(_onClearRoleError);
   }
 
@@ -197,5 +198,34 @@ class RoleBloc extends Bloc<RoleEvent, RoleState> {
       successMessage: null,
       isSuccess: false,
     ));
+  }
+
+  /// Handles all role assignment changes atomically in a single BLoC event.
+  /// Runs assign and remove calls sequentially, then does one final refresh.
+  Future<void> _onSyncUserRoles(SyncUserRoles event, Emitter<RoleState> emit) async {
+    emit(state.copyWith(isLoading: true, error: null));
+    try {
+      // Run all removals first
+      for (final roleId in event.rolesToRemove) {
+        await roleService.removeRoleFromUser(event.userId, roleId);
+      }
+      // Then all additions
+      for (final roleId in event.rolesToAdd) {
+        await roleService.assignRoleToUser(event.userId, roleId);
+      }
+      // Single refresh after all changes are done
+      final updatedUserRoles = await roleService.getUserRoles(event.userId);
+      emit(state.copyWith(
+        isLoading: false,
+        userRoles: updatedUserRoles,
+        successMessage: 'Roles updated successfully',
+        isSuccess: true,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        error: 'Failed to sync roles: $e',
+      ));
+    }
   }
 }

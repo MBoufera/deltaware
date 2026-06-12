@@ -1,6 +1,3 @@
-/// Route permission configuration mapping
-/// Each protected route requires a specific permission or admin role
-
 import 'package:deltaware/core/constants/permissions_constants.dart';
 
 class RoutePermissions {

@@ -76,8 +76,8 @@ CREATE OR REPLACE FUNCTION get_audit_logs(
 ) RETURNS TABLE (
   id UUID,
   admin_id UUID,
-  admin_email VARCHAR,
-  admin_name VARCHAR,
+  admin_email TEXT,
+  admin_name TEXT,
   action VARCHAR,
   resource_type VARCHAR,
   resource_id UUID,

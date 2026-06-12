@@ -257,6 +257,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     await Supabase.instance.client.auth.signUp(
                       email: email,
                       password: password,
+                      data: {
+                        'role': _selectedRole.name,
+                        'full_name': email.split('@')[0],
+                      },
                     );
                     if (context.mounted) {
                       msg.showSnackBar(

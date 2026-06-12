@@ -230,15 +230,14 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        if (!role.isSystem)
-                                          TextButton.icon(
-                                            onPressed: () => _showEditRoleDialog(context, role, state),
-                                            icon: const Icon(Icons.edit, size: 16),
-                                            label: const Text('Edit', style: TextStyle(fontSize: 12)),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: const Color(0xFF2C5364),
-                                            ),
+                                        TextButton.icon(
+                                          onPressed: () => _showEditRoleDialog(context, role, state),
+                                          icon: const Icon(Icons.edit, size: 16),
+                                          label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: const Color(0xFF2C5364),
                                           ),
+                                        ),
                                         if (!role.isSystem)
                                           TextButton.icon(
                                             onPressed: () => _showDeleteConfirmation(context, role),

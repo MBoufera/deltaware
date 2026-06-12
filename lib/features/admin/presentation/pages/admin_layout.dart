@@ -71,7 +71,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       final user = session.user;
-      final role = user.userMetadata?['role'] ?? 'admin';
+      final role = user.userMetadata?['role'] ?? '';
       final name = user.userMetadata?['full_name'] ?? 'User';
       
       setState(() {

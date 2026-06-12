@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:deltaware/core/services/permission_service.dart';
@@ -5,7 +6,11 @@ import 'permissions_event.dart';
 import 'permissions_state.dart';
 
 class PermissionsBloc extends Bloc<PermissionsEvent, PermissionsState> {
-  PermissionsBloc() : super(PermissionsState()) {
+  final SupabaseClient _supabase;
+
+  PermissionsBloc({SupabaseClient? supabase})
+      : _supabase = supabase ?? Supabase.instance.client,
+        super(PermissionsState()) {
     on<LoadPermissions>(_onLoadPermissions);
     on<RefreshPermissions>(_onRefreshPermissions);
     on<ClearPermissions>(_onClearPermissions);
@@ -18,8 +23,30 @@ class PermissionsBloc extends Bloc<PermissionsEvent, PermissionsState> {
     }
 
     emit(state.copyWith(isLoading: true, userId: event.userId));
-    
-    if (event.role == 'admin') {
+
+    bool isSystemAdmin = event.role == 'admin';
+
+    // Double check with DB roles
+    try {
+      final rolesResponse = await _supabase
+          .from('user_roles')
+          .select('roles(name)')
+          .eq('user_id', event.userId);
+      
+      final rolesList = rolesResponse as List? ?? [];
+      final hasAdminRole = rolesList.any((row) {
+        final rolesMap = row['roles'];
+        return rolesMap is Map && rolesMap['name'] == 'Admin';
+      });
+      if (hasAdminRole) {
+        isSystemAdmin = true;
+      }
+    } catch (e) {
+      // Silently fall back to metadata role if query fails
+      debugPrint('Error fetching user roles for admin check: $e');
+    }
+
+    if (isSystemAdmin) {
       emit(state.copyWith(
         isLoading: false,
         isAdmin: true,
@@ -31,79 +58,63 @@ class PermissionsBloc extends Bloc<PermissionsEvent, PermissionsState> {
     }
 
     try {
-      // Load permissions from user's roles
-      final response = await Supabase.instance.client.rpc(
+      // Load permissions from user's RBAC roles
+      final response = await _supabase.rpc(
         'get_user_permissions',
         params: {'p_user_id': event.userId},
       );
 
-      if (response != null) {
-        // Convert list of permission keys to a map for compatibility
-        final permissionsList = response as List?;
-        final permissionsMap = <String, dynamic>{};
-        
-        if (permissionsList != null) {
-          for (var permKey in permissionsList) {
-            permissionsMap[permKey as String] = true;
-          }
-        }
-
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: permissionsMap,
-          lastLoadedAt: DateTime.now(),
-          userId: event.userId,
-        ));
-      } else {
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: {},
-          lastLoadedAt: DateTime.now(),
-          userId: event.userId,
-        ));
+      final permissionsList = response as List? ?? [];
+      final permissionsMap = <String, dynamic>{};
+      for (var permKey in permissionsList) {
+        permissionsMap[permKey as String] = true;
       }
+
+      emit(state.copyWith(
+        isLoading: false,
+        isAdmin: false,
+        permissions: permissionsMap,
+        lastLoadedAt: DateTime.now(),
+        userId: event.userId,
+      ));
     } catch (e) {
-      // Fallback to checking old user_permissions table for backwards compatibility
-      try {
-        final legacyResponse = await Supabase.instance.client
-            .from('user_permissions')
-            .select()
-            .eq('user_id', event.userId)
-            .maybeSingle();
-
-        if (legacyResponse != null) {
-          emit(state.copyWith(
-            isLoading: false,
-            isAdmin: false,
-            permissions: legacyResponse,
-            lastLoadedAt: DateTime.now(),
-          ));
-        } else {
-          emit(state.copyWith(
-            isLoading: false,
-            isAdmin: false,
-            permissions: {},
-            lastLoadedAt: DateTime.now(),
-          ));
-        }
-      } catch (_) {
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: {},
-          lastLoadedAt: DateTime.now(),
-        ));
-      }
+      emit(state.copyWith(
+        isLoading: false,
+        isAdmin: false,
+        permissions: {},
+        lastLoadedAt: DateTime.now(),
+        userId: event.userId,
+      ));
     }
   }
 
   Future<void> _onRefreshPermissions(RefreshPermissions event, Emitter<PermissionsState> emit) async {
     // Force reload permissions, bypassing cache
     emit(state.copyWith(isLoading: true, userId: event.userId));
-    
-    if (event.role == 'admin') {
+
+    bool isSystemAdmin = event.role == 'admin';
+
+    // Double check with DB roles
+    try {
+      final rolesResponse = await _supabase
+          .from('user_roles')
+          .select('roles(name)')
+          .eq('user_id', event.userId);
+      
+      final rolesList = rolesResponse as List? ?? [];
+      final hasAdminRole = rolesList.any((row) {
+        final rolesMap = row['roles'];
+        return rolesMap is Map && rolesMap['name'] == 'Admin';
+      });
+      if (hasAdminRole) {
+        isSystemAdmin = true;
+      }
+    } catch (e) {
+      // Silently fall back to metadata role if query fails
+      debugPrint('Error fetching user roles for admin check: $e');
+    }
+
+    if (isSystemAdmin) {
       emit(state.copyWith(
         isLoading: false,
         isAdmin: true,
@@ -115,71 +126,32 @@ class PermissionsBloc extends Bloc<PermissionsEvent, PermissionsState> {
     }
 
     try {
-      final response = await Supabase.instance.client.rpc(
+      final response = await _supabase.rpc(
         'get_user_permissions',
         params: {'p_user_id': event.userId},
       );
 
-      if (response != null) {
-        final permissionsList = response as List?;
-        final permissionsMap = <String, dynamic>{};
-        
-        if (permissionsList != null) {
-          for (var permKey in permissionsList) {
-            permissionsMap[permKey as String] = true;
-          }
-        }
-
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: permissionsMap,
-          lastLoadedAt: DateTime.now(),
-          userId: event.userId,
-        ));
-      } else {
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: {},
-          lastLoadedAt: DateTime.now(),
-          userId: event.userId,
-        ));
+      final permissionsList = response as List? ?? [];
+      final permissionsMap = <String, dynamic>{};
+      for (var permKey in permissionsList) {
+        permissionsMap[permKey as String] = true;
       }
+
+      emit(state.copyWith(
+        isLoading: false,
+        isAdmin: false,
+        permissions: permissionsMap,
+        lastLoadedAt: DateTime.now(),
+        userId: event.userId,
+      ));
     } catch (e) {
-      try {
-        final legacyResponse = await Supabase.instance.client
-            .from('user_permissions')
-            .select()
-            .eq('user_id', event.userId)
-            .maybeSingle();
-
-        if (legacyResponse != null) {
-          emit(state.copyWith(
-            isLoading: false,
-            isAdmin: false,
-            permissions: legacyResponse,
-            lastLoadedAt: DateTime.now(),
-            userId: event.userId,
-          ));
-        } else {
-          emit(state.copyWith(
-            isLoading: false,
-            isAdmin: false,
-            permissions: {},
-            lastLoadedAt: DateTime.now(),
-            userId: event.userId,
-          ));
-        }
-      } catch (_) {
-        emit(state.copyWith(
-          isLoading: false,
-          isAdmin: false,
-          permissions: {},
-          lastLoadedAt: DateTime.now(),
-          userId: event.userId,
-        ));
-      }
+      emit(state.copyWith(
+        isLoading: false,
+        isAdmin: false,
+        permissions: {},
+        lastLoadedAt: DateTime.now(),
+        userId: event.userId,
+      ));
     }
   }
 

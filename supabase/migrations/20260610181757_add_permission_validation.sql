@@ -187,7 +187,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    role_id UUID;
+    v_role_id UUID;
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_roles') THEN
@@ -197,16 +197,16 @@ BEGIN
     -- Create the role
     INSERT INTO public.roles (name, description, created_by)
     VALUES (p_name, p_description, auth.uid())
-    RETURNING id INTO role_id;
+    RETURNING id INTO v_role_id;
     
     -- Assign permissions to the role
     INSERT INTO public.role_permissions (role_id, permission_id)
-    SELECT role_id, p.id
+    SELECT v_role_id, p.id
     FROM public.permissions p
     WHERE p.key = ANY(p_permission_keys)
     ON CONFLICT (role_id, permission_id) DO NOTHING;
     
-    RETURN role_id;
+    RETURN v_role_id;
 END;
 $$;
 

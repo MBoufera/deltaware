@@ -94,3 +94,20 @@ class RemoveRoleFromUser extends RoleEvent {
 class ClearRoleError extends RoleEvent {
   const ClearRoleError();
 }
+
+/// Atomically syncs a user's roles: assigns newly added ones and removes
+/// ones that were unchecked. Prevents race conditions from N separate events.
+class SyncUserRoles extends RoleEvent {
+  final String userId;
+  final List<String> rolesToAdd;
+  final List<String> rolesToRemove;
+
+  const SyncUserRoles({
+    required this.userId,
+    required this.rolesToAdd,
+    required this.rolesToRemove,
+  });
+
+  @override
+  List<Object?> get props => [userId, rolesToAdd, rolesToRemove];
+}

@@ -7,7 +7,7 @@ class AppPermission extends Equatable {
   final String name;
   final String? description;
   final String category;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   const AppPermission({
     required this.id,
@@ -15,17 +15,17 @@ class AppPermission extends Equatable {
     required this.name,
     this.description,
     required this.category,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory AppPermission.fromJson(Map<String, dynamic> json) {
     return AppPermission(
-      id: json['id'] as String,
-      key: json['key'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      category: json['category'] as String? ?? 'general',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: json['id']?.toString() ?? '',
+      key: json['key']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString(),
+      category: json['category']?.toString() ?? 'general',
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : null,
     );
   }
 
@@ -36,7 +36,7 @@ class AppPermission extends Equatable {
       'name': name,
       'description': description,
       'category': category,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 
@@ -87,17 +87,18 @@ class Role extends Equatable {
 
   factory Role.fromJson(Map<String, dynamic> json) {
     final permList = json['permissions'] as List? ?? [];
+    final now = DateTime.now().toIso8601String();
     return Role(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String?,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString(),
       isSystem: json['is_system'] as bool? ?? false,
       permissions: List<AppPermission>.from(
         permList.map((p) => AppPermission.fromJson(p as Map<String, dynamic>)),
       ),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String? ?? json['created_at'] as String),
-      createdBy: json['created_by'] as String?,
+      createdAt: DateTime.parse(json['created_at']?.toString() ?? now),
+      updatedAt: DateTime.parse(json['updated_at']?.toString() ?? json['created_at']?.toString() ?? now),
+      createdBy: json['created_by']?.toString(),
     );
   }
 
