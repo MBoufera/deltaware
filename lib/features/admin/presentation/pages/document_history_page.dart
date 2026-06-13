@@ -30,7 +30,9 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
     try {
       final data = await _supabase
           .from('sales')
-          .select('id, sale_number, sale_type, total_ttc, created_at, clients(name)')
+          .select(
+            'id, sale_number, sale_type, total_ttc, created_at, clients(name)',
+          )
           .order('created_at', ascending: false);
 
       if (mounted) {
@@ -137,9 +139,7 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
                         decoration: const InputDecoration(
                           hintText: 'Rechercher par numéro, client ou type...',
                           border: InputBorder.none,
-                          hintStyle: TextStyle(
-                            color: Color(0xFF94A3B8),
-                          ),
+                          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
                         ),
                         onChanged: _filterSales,
                       ),
@@ -158,56 +158,55 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
                         ),
                       )
                     : _filteredSales.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(40.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade50,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.receipt_long_rounded,
-                                      size: 64,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Aucun document trouvé',
-                                    style: TextStyle(
-                                      color: Color(0xFF64748B),
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(40.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.receipt_long_rounded,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
+                                ),
                               ),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _filteredSales.length,
-                            itemBuilder: (context, index) {
-                              final sale = _filteredSales[index];
-                              return _DocumentCard(
-                                sale: sale,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DocumentViewerPage(
-                                        saleId: sale['id'],
-                                      ),
-                                    ),
-                                  );
-                                },
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Aucun document trouvé',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _filteredSales.length,
+                        itemBuilder: (context, index) {
+                          final sale = _filteredSales[index];
+                          return _DocumentCard(
+                            sale: sale,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      DocumentViewerPage(saleId: sale['id']),
+                                ),
                               );
                             },
-                          ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -223,10 +222,7 @@ class _DocumentCard extends StatefulWidget {
   final Map<String, dynamic> sale;
   final VoidCallback onTap;
 
-  const _DocumentCard({
-    required this.sale,
-    required this.onTap,
-  });
+  const _DocumentCard({required this.sale, required this.onTap});
 
   @override
   State<_DocumentCard> createState() => _DocumentCardState();
@@ -276,7 +272,8 @@ class _DocumentCardState extends State<_DocumentCard> {
 
   @override
   Widget build(BuildContext context) {
-    final clientName = widget.sale['clients']?['name'] ?? 'Client Standard (Détail)';
+    final clientName =
+        widget.sale['clients']?['name'] ?? 'Client Standard (Détail)';
     final totalTtc = (widget.sale['total_ttc'] as num?)?.toDouble() ?? 0.0;
     final typeColor = _getBadgeColor(widget.sale['sale_type']);
 
@@ -284,177 +281,187 @@ class _DocumentCardState extends State<_DocumentCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? 1.01 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeInOut,
-        child: AnimatedContainer(
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isHovered ? 1.01 : 1.0,
           duration: const Duration(milliseconds: 150),
-          margin: const EdgeInsets.only(bottom: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _isHovered ? 0.06 : 0.03),
-                blurRadius: _isHovered ? 16 : 10,
-                offset: Offset(0, _isHovered ? 8 : 5),
-              ),
-            ],
-            border: Border.all(
-              color: _isHovered
-                  ? typeColor.withValues(alpha: 0.2)
-                  : Colors.grey.shade100,
-              width: 1.5,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    width: 6,
-                    color: typeColor,
+          curve: Curves.easeInOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: _isHovered ? 0.06 : 0.03,
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: typeColor.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
+                  blurRadius: _isHovered ? 16 : 10,
+                  offset: Offset(0, _isHovered ? 8 : 5),
+                ),
+              ],
+              border: Border.all(
+                color: _isHovered
+                    ? typeColor.withValues(alpha: 0.2)
+                    : Colors.grey.shade100,
+                width: 1.5,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(width: 6, color: typeColor),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: typeColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.receipt_long_rounded,
+                                color: typeColor,
+                                size: 22,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.receipt_long_rounded,
-                              color: typeColor,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 18),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      widget.sale['sale_number'] ?? 'N/A',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Color(0xFF1E293B),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: typeColor.withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: typeColor.withValues(alpha: 0.2),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _formatSaleType(widget.sale['sale_type']),
-                                        style: TextStyle(
-                                          color: typeColor,
-                                          fontSize: 10,
+                            const SizedBox(width: 18),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        widget.sale['sale_number'] ?? 'N/A',
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Color(0xFF1E293B),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 10),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: typeColor.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: typeColor.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _formatSaleType(
+                                            widget.sale['sale_type'],
+                                          ),
+                                          style: TextStyle(
+                                            color: typeColor,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 14,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        clientName,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Icon(
+                                        Icons.calendar_today_rounded,
+                                        size: 13,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _formatDate(widget.sale['created_at']),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${totalTtc.toStringAsFixed(2)} DZD',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 17,
+                                    color: Color(0xFF047857),
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.person_outline_rounded,
-                                      size: 14,
-                                      color: Colors.grey.shade500,
+                                    const Icon(
+                                      Icons.picture_as_pdf_outlined,
+                                      color: Color(0xFFEF4444),
+                                      size: 16,
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      clientName,
+                                      'PDF Invoiced',
                                       style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Icon(
-                                      Icons.calendar_today_rounded,
-                                      size: 13,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      _formatDate(widget.sale['created_at']),
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade500,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${totalTtc.toStringAsFixed(2)} DZD',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 17,
-                                  color: Color(0xFF047857),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.picture_as_pdf_outlined,
-                                    color: Color(0xFFEF4444),
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'PDF Invoiced',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
