@@ -55,8 +55,6 @@ void main() {
       mockProductsQuery = MockSupabaseQueryBuilder();
 
       when(() => mockSupabaseClient.from('products')).thenAnswer((_) => mockProductsQuery);
-      when(() => mockProductsQuery.select(any())).thenAnswer((_) => mockFilterBuilder);
-      when(() => mockFilterBuilder.order('created_at', ascending: false)).thenAnswer((_) => mockTransformBuilder);
     });
 
     tearDown(() {
@@ -71,7 +69,6 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductsLoaded] when LoadProducts is successful',
       build: () {
-        productBloc = ProductBloc(supabase: mockSupabaseClient);
         final dummyProducts = [
           {
             'id': '1',
@@ -81,11 +78,10 @@ void main() {
             'stock': {'qty_detail': 10.0, 'alert_threshold': 5.0}
           }
         ];
-        when(() => mockTransformBuilder.then(any())).thenAnswer((invocation) {
-          final callback = invocation.positionalArguments[0] as Function;
-          return Future.value(callback(dummyProducts));
-        });
-        return ProductBloc(supabase: mockSupabaseClient);
+        final fakeFilterBuilder = FakePostgrestFilterBuilder<List<Map<String, dynamic>>>(dummyProducts);
+        when(() => mockProductsQuery.select(any())).thenAnswer((_) => fakeFilterBuilder);
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
+        return productBloc!;
       },
       act: (bloc) => bloc.add(const LoadProducts()),
       expect: () => [
@@ -97,10 +93,12 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductError] when LoadProducts fails',
       build: () {
-        when(() => mockTransformBuilder.then(any())).thenAnswer(
-          (_) => Future.error(Exception('Database error')),
+        final fakeFilterBuilder = FakePostgrestFilterBuilder<List<Map<String, dynamic>>>.error(
+          Exception('Database error'),
         );
-        return ProductBloc(supabase: mockSupabaseClient);
+        when(() => mockProductsQuery.select(any())).thenAnswer((_) => fakeFilterBuilder);
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
+        return productBloc!;
       },
       act: (bloc) => bloc.add(const LoadProducts()),
       expect: () => [
@@ -112,13 +110,10 @@ void main() {
     blocTest<ProductBloc, ProductState>(
       'emits [ProductLoading, ProductOperationSuccess] when DeleteProduct is successful',
       build: () {
-        when(() => mockProductsQuery.delete()).thenAnswer((_) => mockFilterBuilder);
-        when(() => mockFilterBuilder.eq(any(), any())).thenAnswer((_) => mockFilterBuilder);
-        when(() => mockFilterBuilder.then(any())).thenAnswer((invocation) {
-          final callback = invocation.positionalArguments[0] as Function;
-          return Future.value(callback([]));
-        });
-        return ProductBloc(supabase: mockSupabaseClient);
+        final fakeFilterBuilder = FakePostgrestFilterBuilder<List<Map<String, dynamic>>>([]);
+        when(() => mockProductsQuery.delete()).thenAnswer((_) => fakeFilterBuilder);
+        productBloc = ProductBloc(supabase: mockSupabaseClient);
+        return productBloc!;
       },
       act: (bloc) => bloc.add(const DeleteProduct('1')),
       expect: () => [
