@@ -50,7 +50,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   final _priceFocusNode = FocusNode();
 
   // NOTE: Key hidden for GitHub
-  final String _geminiApiKey = 'YOUR_GEMINI_API_KEY';
+  final String _geminiApiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_GEMINI_API_KEY');
 
   @override
   void dispose() {
