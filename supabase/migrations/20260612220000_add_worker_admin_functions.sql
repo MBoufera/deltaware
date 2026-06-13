@@ -23,7 +23,7 @@ BEGIN
     (auth.jwt()->>'role')::text = 'admin'
     OR check_user_permission('can_manage_users')
   ) THEN
-    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
   END IF;
 
   -- Cannot edit yourself via this function to avoid accidental lock-out
@@ -73,7 +73,7 @@ BEGIN
     (auth.jwt()->>'role')::text = 'admin'
     OR check_user_permission('can_manage_users')
   ) THEN
-    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
   END IF;
 
   -- Generate a readable 12-char password: 2 uppercase + 4 lowercase + 4 digits + !! suffix
@@ -127,12 +127,12 @@ BEGIN
     (auth.jwt()->>'role')::text = 'admin'
     OR check_user_permission('can_manage_users')
   ) THEN
-    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+    RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
   END IF;
 
   -- Prevent self-deletion
   IF p_user_id = auth.uid() THEN
-    RAISE EXCEPTION 'You cannot delete your own account' USING ERRCODE = '403';
+    RAISE EXCEPTION 'You cannot delete your own account' USING ERRCODE = '42501';
   END IF;
 
   -- Prevent deleting admins
@@ -141,7 +141,7 @@ BEGIN
     WHERE id = p_user_id
       AND (raw_user_meta_data->>'role') = 'admin'
   ) THEN
-    RAISE EXCEPTION 'Admin accounts cannot be deleted via this function' USING ERRCODE = '403';
+    RAISE EXCEPTION 'Admin accounts cannot be deleted via this function' USING ERRCODE = '42501';
   END IF;
 
   -- Cascades handle user_roles, audit_logs (SET NULL), etc.

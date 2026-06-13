@@ -149,20 +149,53 @@ class _ClientSelectionDialogState extends State<ClientSelectionDialog> {
         Expanded(
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: _filteredClients.length,
-                itemBuilder: (context, index) {
-                  final client = _filteredClients[index];
-                  return Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.business)),
-                      title: Text(client['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('Type: ${client['type']} | NIF: ${client['nif'] ?? 'N/A'}'),
-                      onTap: () => Navigator.of(context).pop(client),
+            : _filteredClients.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_search, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchController.text.isEmpty
+                              ? 'No clients available.'
+                              : 'No clients found matching "${_searchController.text}"',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _isCreatingNew = true;
+                              _nameController.text = _searchController.text.trim();
+                            });
+                          },
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('Create New Client'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF203A43),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredClients.length,
+                    itemBuilder: (context, index) {
+                      final client = _filteredClients[index];
+                      return Card(
+                        child: ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.business)),
+                          title: Text(client['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('Type: ${client['type']} | NIF: ${client['nif'] ?? 'N/A'}'),
+                          onTap: () => Navigator.of(context).pop(client),
+                        ),
+                      );
+                    },
+                  ),
         ),
       ],
     );

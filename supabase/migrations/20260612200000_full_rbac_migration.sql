@@ -43,7 +43,7 @@ DECLARE
     result JSONB;
 BEGIN
     IF NOT check_user_permission('can_manage_users') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_users required' USING ERRCODE = '42501';
     END IF;
 
     SELECT jsonb_agg(worker_row) INTO result

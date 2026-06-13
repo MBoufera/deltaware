@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -7,8 +8,34 @@ import 'package:deltaware/features/admin/presentation/bloc/analytics/analytics_e
 import 'package:deltaware/features/admin/presentation/bloc/analytics/analytics_state.dart';
 
 class MockSupabaseClient extends Mock implements SupabaseClient {}
-class MockPostgrestFilterBuilder extends Mock implements PostgrestFilterBuilder<dynamic> {}
-class MockPostgrestResponse extends Mock implements PostgrestResponse<dynamic> {}
+
+class FakePostgrestFilterBuilder<T> extends Fake implements PostgrestFilterBuilder<T> {
+  final FutureOr<T> Function() _valueFn;
+
+  FakePostgrestFilterBuilder(T value) : _valueFn = (() => value);
+  FakePostgrestFilterBuilder.error(Object error) : _valueFn = (() => throw error);
+
+  @override
+  Future<R> then<R>(FutureOr<R> Function(T) onValue, {Function? onError}) async {
+    try {
+      final val = await _valueFn();
+      final result = onValue(val);
+      if (result is Future<R>) {
+        return await result;
+      }
+      return result;
+    } catch (e, stackTrace) {
+      if (onError != null) {
+        final errResult = onError(e, stackTrace);
+        if (errResult is Future<R>) {
+          return await errResult;
+        }
+        return errResult as R;
+      }
+      rethrow;
+    }
+  }
+}
 
 void main() {
   late MockSupabaseClient mockSupabaseClient;
@@ -31,16 +58,17 @@ void main() {
     blocTest<AnalyticsBloc, AnalyticsState>(
       'LoadDashboard emits [AnalyticsLoading, AnalyticsLoaded] when RPC is successful',
       build: () {
+        final dummyData = <String, dynamic>{
+          'kpi': <String, dynamic>{'total_revenue_ht': 1000},
+          'timeline': <dynamic>[],
+          'top_workers': <dynamic>[],
+          'top_products': <dynamic>[],
+          'category_breakdown': <dynamic>[]
+        };
         when(() => mockSupabaseClient.rpc(
               'get_deep_analytics',
               params: any(named: 'params'),
-            ) as Future<dynamic>).thenAnswer((_) async => {
-              'kpi': {'total_revenue_ht': 1000},
-              'timeline': [],
-              'top_workers': [],
-              'top_products': [],
-              'category_breakdown': []
-            });
+            )).thenAnswer((_) => FakePostgrestFilterBuilder<dynamic>(dummyData));
         return analyticsBloc;
       },
       act: (bloc) => bloc.add(const LoadDashboard(period: 'month')),
@@ -58,10 +86,17 @@ void main() {
     blocTest<AnalyticsBloc, AnalyticsState>(
       'ChangeDateRange emits [AnalyticsLoading, AnalyticsLoaded] with custom period',
       build: () {
+        final dummyData = <String, dynamic>{
+          'kpi': <String, dynamic>{},
+          'timeline': <dynamic>[],
+          'top_workers': <dynamic>[],
+          'top_products': <dynamic>[],
+          'category_breakdown': <dynamic>[]
+        };
         when(() => mockSupabaseClient.rpc(
               'get_deep_analytics',
               params: any(named: 'params'),
-            ) as Future<dynamic>).thenAnswer((_) async => {});
+            )).thenAnswer((_) => FakePostgrestFilterBuilder<dynamic>(dummyData));
         return analyticsBloc;
       },
       act: (bloc) => bloc.add(ChangeDateRange(

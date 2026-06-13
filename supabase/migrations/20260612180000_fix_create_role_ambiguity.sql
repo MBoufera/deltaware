@@ -12,7 +12,7 @@ DECLARE
 BEGIN
     -- Check permission
     IF NOT check_user_permission('can_manage_roles') THEN
-        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '403';
+        RAISE EXCEPTION 'Insufficient permissions: can_manage_roles required' USING ERRCODE = '42501';
     END IF;
 
     -- Create the role
