@@ -38,6 +38,9 @@ class _AddProductFormState extends State<AddProductForm> {
   final _wholesaleMarginController = TextEditingController();
   final _retailMultiplierController = TextEditingController(text: '1.30');
   final _tvaController = TextEditingController(text: '19'); // Default 19% TVA
+  final _qtyDetailController = TextEditingController(text: '0');
+  final _alertThresholdController = TextEditingController(text: '5');
+  final _contenanceController = TextEditingController(text: '1');
 
   // Calculated values
   double _wholesalePrice = 0.0;
@@ -87,6 +90,9 @@ class _AddProductFormState extends State<AddProductForm> {
     _wholesaleMarginController.dispose();
     _retailMultiplierController.dispose();
     _tvaController.dispose();
+    _qtyDetailController.dispose();
+    _alertThresholdController.dispose();
+    _contenanceController.dispose();
     super.dispose();
   }
 
@@ -124,6 +130,10 @@ class _AddProductFormState extends State<AddProductForm> {
           ? 'products.uncategorized'.tr()
           : _categoryController.text;
 
+      final qtyDetail = double.tryParse(_qtyDetailController.text) ?? 0.0;
+      final alertThreshold = double.tryParse(_alertThresholdController.text) ?? 5.0;
+      final contenance = int.tryParse(_contenanceController.text) ?? 1;
+
       if (widget.product != null) {
         context.read<ProductBloc>().add(
           UpdateProduct(
@@ -137,6 +147,7 @@ class _AddProductFormState extends State<AddProductForm> {
             tva: tva,
             wholesaleMargin: marginPercent,
             retailMultiplier: retailMultiplier,
+            contenance: contenance,
           ),
         );
       } else {
@@ -151,6 +162,11 @@ class _AddProductFormState extends State<AddProductForm> {
             tva: tva,
             wholesaleMargin: marginPercent,
             retailMultiplier: retailMultiplier,
+            qtySuperGros: 0.0,
+            qtyGros: 0.0,
+            qtyDetail: qtyDetail,
+            alertThreshold: alertThreshold,
+            contenance: contenance,
           ),
         );
       }
@@ -453,6 +469,43 @@ class _AddProductFormState extends State<AddProductForm> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _contenanceController,
+                                    label: 'add_product.contenance'.tr(),
+                                    icon: Icons.grid_view_rounded,
+                                    isNumber: true,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _alertThresholdController,
+                                    label: 'add_product.alert_threshold'.tr(),
+                                    icon: Icons.warning_amber_outlined,
+                                    isNumber: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (widget.product == null) ...[
+                              const SizedBox(height: 32),
+                              const Divider(height: 1),
+                              const SizedBox(height: 32),
+                              _buildSectionHeader(
+                                'add_product.inventory'.tr().toUpperCase(),
+                              ),
+                              _buildTextField(
+                                controller: _qtyDetailController,
+                                label: 'add_product.qty_detail'.tr(),
+                                icon: Icons.shopping_bag_outlined,
+                                isNumber: true,
+                              ),
+                            ],
                           ],
                         ),
                       );

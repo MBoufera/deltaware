@@ -69,13 +69,16 @@ void main() {
       expect(find.text('Current Sale'), findsOneWidget);
 
       // 5. Look for a product card to tap (add to cart)
-      final productCard = find.byType(Card).first;
+      final productCard = find.descendant(
+        of: find.byType(GridView),
+        matching: find.byIcon(Icons.inventory_2_outlined),
+      ).first;
       if (tester.any(productCard)) {
         await tester.tap(productCard);
         await tester.pumpAndSettle();
 
         // 6. Verify item was added to cart (we should see cart controls)
-        expect(find.byIcon(Icons.add_circle_outline), findsWidgets);
+        expect(find.byIcon(Icons.add_rounded), findsWidgets);
         expect(find.text('CONFIRM SALE'), findsWidgets);
       } else {
         log('No products found in DB to tap, but POS loaded successfully.');

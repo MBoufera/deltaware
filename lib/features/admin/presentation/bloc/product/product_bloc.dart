@@ -59,6 +59,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'name_ar': event.nameAr,
           'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
           'category_id': categoryId,
+          'contenance': event.contenance,
         }).select('id').single();
         final productId = productResponse['id'];
         
@@ -77,6 +78,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         // Insert stock entry
         await _supabase.from('stock').insert({
           'product_id': productId,
+          'qty_super_gros': event.qtySuperGros,
+          'qty_gros': event.qtyGros,
+          'qty_detail': event.qtyDetail + (event.qtyGros * event.contenance),
+          'alert_threshold': event.alertThreshold,
         });
         
         emit(ProductOperationSuccess());
@@ -106,6 +111,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'name_ar': event.nameAr,
           'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
           'category_id': categoryId,
+          'contenance': event.contenance,
         }).eq('id', event.id);
         
         // Calculate retail margin percent

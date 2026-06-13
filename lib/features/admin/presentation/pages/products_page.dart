@@ -620,14 +620,55 @@ class _ProductRowState extends State<_ProductRow> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      widget.product['name_fr'] ?? '',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Color(0xFF1E293B),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.product['name_fr'] ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Color(0xFF1E293B),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          runSpacing: 2,
+                          children: [
+                            if (widget.product['ref_code'] != null &&
+                                widget.product['ref_code'].toString().isNotEmpty) ...[
+                              Text(
+                                widget.product['ref_code'].toString(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Container(
+                                width: 3,
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade400,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                            Text(
+                              'Contenance: ${widget.product['contenance'] ?? 1} pcs/bte',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -662,8 +703,10 @@ class _ProductRowState extends State<_ProductRow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Text(
                         '$qty units',
@@ -673,7 +716,6 @@ class _ProductRowState extends State<_ProductRow> {
                           color: isLowStock ? Colors.red.shade700 : const Color(0xFF1E293B),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       stockBadge,
                     ],
                   ),
