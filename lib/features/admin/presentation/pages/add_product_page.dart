@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -42,6 +43,11 @@ class _AddProductFormState extends State<AddProductForm> {
   final _alertThresholdController = TextEditingController(text: '5');
   final _contenanceController = TextEditingController(text: '1');
 
+  // Category autocomplete states
+  final List<String> _existingCategories = [];
+  List<String> _filteredCategories = [];
+  final MenuController _menuController = MenuController();
+
   // Calculated values
   double _wholesalePrice = 0.0;
   double _retailPrice = 0.0;
@@ -49,6 +55,7 @@ class _AddProductFormState extends State<AddProductForm> {
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     if (widget.product != null) {
       final p = widget.product!;
       _nameController.text = p['name_fr'] ?? '';
@@ -114,6 +121,40 @@ class _AddProductFormState extends State<AddProductForm> {
     setState(() {
       _wholesalePrice = calculatedWholesale;
       _retailPrice = calculatedRetail;
+    });
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('categories')
+          .select('name_fr')
+          .order('name_fr');
+      
+      final List<String> loaded = List<String>.from(
+        (response as List).map((item) => item['name_fr'] as String),
+      );
+      if (mounted) {
+        setState(() {
+          _existingCategories.clear();
+          _existingCategories.addAll(loaded);
+          _filteredCategories = List.from(_existingCategories);
+        });
+      }
+    } catch (e) {
+      // Ignore or log
+    }
+  }
+
+  void _filterCategories(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredCategories = List.from(_existingCategories);
+      } else {
+        _filteredCategories = _existingCategories
+            .where((cat) => cat.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
     });
   }
 
@@ -210,6 +251,8 @@ class _AddProductFormState extends State<AddProductForm> {
     required IconData icon,
     bool isNumber = false,
     String? suffixText,
+    Widget? suffixIcon,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,6 +268,7 @@ class _AddProductFormState extends State<AddProductForm> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          onChanged: onChanged,
           keyboardType: isNumber
               ? const TextInputType.numberWithOptions(decimal: true)
               : TextInputType.text,
@@ -236,6 +280,7 @@ class _AddProductFormState extends State<AddProductForm> {
           },
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 18),
+            suffixIcon: suffixIcon,
             suffixText: suffixText,
             suffixStyle: const TextStyle(
               fontWeight: FontWeight.bold,
@@ -405,10 +450,88 @@ class _AddProductFormState extends State<AddProductForm> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            _buildTextField(
-                              controller: _categoryController,
-                              label: 'add_product.category'.tr(),
-                              icon: Icons.category_outlined,
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                return MenuAnchor(
+                                  controller: _menuController,
+                                  style: MenuStyle(
+                                    backgroundColor: WidgetStateProperty.all(Colors.white),
+                                    surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+                                    elevation: WidgetStateProperty.all(4.0),
+                                    minimumSize: WidgetStateProperty.all(Size(constraints.maxWidth, 0)),
+                                    maximumSize: WidgetStateProperty.all(Size(constraints.maxWidth, 260)),
+                                    shape: WidgetStateProperty.all(
+                                      RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        side: BorderSide(color: Colors.grey.shade200),
+                                      ),
+                                    ),
+                                  ),
+                                  menuChildren: _filteredCategories.isEmpty
+                                      ? [
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                            child: Text(
+                                              'No matching categories (will create new)',
+                                              style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                                            ),
+                                          )
+                                        ]
+                                      : _filteredCategories.map((String cat) {
+                                          return MenuItemButton(
+                                            child: Container(
+                                              width: constraints.maxWidth - 32,
+                                              padding: const EdgeInsets.symmetric(vertical: 4),
+                                              child: Text(
+                                                cat,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF1E293B),
+                                                ),
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _categoryController.text = cat;
+                                                _filterCategories(cat);
+                                              });
+                                            },
+                                          );
+                                        }).toList(),
+                                  builder: (context, controller, child) {
+                                    return _buildTextField(
+                                      controller: _categoryController,
+                                      label: 'add_product.category'.tr(),
+                                      icon: Icons.category_outlined,
+                                      onChanged: (val) {
+                                        _filterCategories(val);
+                                        if (!controller.isOpen) {
+                                          controller.open();
+                                        }
+                                      },
+                                      suffixIcon: MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (controller.isOpen) {
+                                              controller.close();
+                                            } else {
+                                              _filterCategories(_categoryController.text);
+                                              controller.open();
+                                            }
+                                          },
+                                          child: const Icon(
+                                            Icons.arrow_drop_down_rounded,
+                                            color: Color(0xFF64748B),
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
                             ),
 
                             const SizedBox(height: 32),
