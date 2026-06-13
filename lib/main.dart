@@ -155,9 +155,9 @@ final GoRouter _router = GoRouter(
                   builder: (context, state) {
                     final product = state.extra as Map<String, dynamic>?;
                     return RoutePermissionGuard(
-                    route: '/dashboard/products/add',
-                    child: AddProductPage(product: product),
-                  );
+                      route: '/dashboard/products/add',
+                      child: AddProductPage(product: product),
+                    );
                   },
                 ),
               ],

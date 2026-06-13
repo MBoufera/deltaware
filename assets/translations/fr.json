@@ -56,7 +56,8 @@
     "uncategorized": "Non catégorisé",
     "low_stock": "Stock Faible",
     "delete_confirm_title": "Supprimer le Produit",
-    "delete_confirm_desc": "Êtes-vous sûr de vouloir supprimer le produit {} ?"
+    "delete_confirm_desc": "Êtes-vous sûr de vouloir supprimer le produit {} ?",
+    "all_categories": "Toutes les catégories"
   },
   "add_product": {
     "title": "Ajouter un Nouveau Produit",

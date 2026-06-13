@@ -56,7 +56,8 @@
     "uncategorized": "غير مصنف",
     "low_stock": "مخزون منخفض",
     "delete_confirm_title": "حذف المنتج",
-    "delete_confirm_desc": "هل أنت متأكد أنك تريد حذف المنتج {}؟"
+    "delete_confirm_desc": "هل أنت متأكد أنك تريد حذف المنتج {}؟",
+    "all_categories": "جميع الفئات"
   },
   "add_product": {
     "title": "إضافة منتج جديد",

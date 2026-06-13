@@ -5,7 +5,7 @@ import 'dart:developer' show log;
 /// Model for audit log entries
 class AuditLog {
   final String id;
-  final String adminId;
+  final String? adminId;
   final String? adminEmail;
   final String? adminName;
   final String action;
@@ -22,7 +22,7 @@ class AuditLog {
 
   AuditLog({
     required this.id,
-    required this.adminId,
+    this.adminId,
     this.adminEmail,
     this.adminName,
     required this.action,
@@ -40,21 +40,27 @@ class AuditLog {
 
   factory AuditLog.fromJson(Map<String, dynamic> json) {
     return AuditLog(
-      id: json['id'] as String,
-      adminId: json['admin_id'] as String,
+      id: json['id'] as String? ?? '',
+      adminId: json['admin_id'] as String?,
       adminEmail: json['admin_email'] as String?,
       adminName: json['admin_name'] as String?,
-      action: json['action'] as String,
-      resourceType: json['resource_type'] as String,
+      action: json['action'] as String? ?? 'unknown',
+      resourceType: json['resource_type'] as String? ?? 'unknown',
       resourceId: json['resource_id'] as String?,
       resourceName: json['resource_name'] as String?,
-      oldValue: json['old_value'] as Map<String, dynamic>?,
-      newValue: json['new_value'] as Map<String, dynamic>?,
+      oldValue: json['old_value'] != null
+          ? Map<String, dynamic>.from(json['old_value'] as Map)
+          : null,
+      newValue: json['new_value'] != null
+          ? Map<String, dynamic>.from(json['new_value'] as Map)
+          : null,
       reason: json['reason'] as String?,
-      status: json['status'] as String,
+      status: json['status'] as String? ?? 'failed',
       errorMessage: json['error_message'] as String?,
       ipAddress: json['ip_address'] as String?,
-      timestamp: DateTime.parse(json['timestamp'] as String).toLocal(),
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'] as String).toLocal()
+          : DateTime.now(),
     );
   }
 

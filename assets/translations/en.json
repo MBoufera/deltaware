@@ -56,7 +56,8 @@
     "uncategorized": "Uncategorized",
     "low_stock": "Low Stock",
     "delete_confirm_title": "Delete Product",
-    "delete_confirm_desc": "Are you sure you want to delete the product {}?"
+    "delete_confirm_desc": "Are you sure you want to delete the product {}?",
+    "all_categories": "All Categories"
   },
   "add_product": {
     "title": "Add New Product",

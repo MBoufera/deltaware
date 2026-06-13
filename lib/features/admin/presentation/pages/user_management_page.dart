@@ -637,21 +637,24 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                 itemCount: _workers.length,
                                 separatorBuilder: (context, index) =>
                                     const Divider(height: 1),
-                                itemBuilder: (ctx, index) =>
-                                    _WorkerTile(
-                                  worker: _workers[index],
-                                  onEditProfile: () =>
-                                      _showEditUserDialog(_workers[index]),
-                                  onGeneratePassword: () =>
-                                      _showGeneratePasswordDialog(_workers[index]),
-                                  onAssignRoles: () =>
-                                      _showRoleAssignmentDialog(ctx, _workers[index]),
-                                  onDelete: () =>
-                                      _showDeleteUserDialog(_workers[index]),
-                                ),
+                                itemBuilder: (ctx, index) {
+                                  final isCurrentUser = _workers[index]['id'] == _supabase.auth.currentUser?.id;
+                                  return _WorkerTile(
+                                    worker: _workers[index],
+                                    isCurrentUser: isCurrentUser,
+                                    onEditProfile: () =>
+                                        _showEditUserDialog(_workers[index]),
+                                    onGeneratePassword: () =>
+                                        _showGeneratePasswordDialog(_workers[index]),
+                                    onAssignRoles: () =>
+                                        _showRoleAssignmentDialog(ctx, _workers[index]),
+                                    onDelete: () =>
+                                        _showDeleteUserDialog(_workers[index]),
+                                  );
+                                },
                               ),
                   ),
-                ),
+                  ),
               ),
             ],
           ),
@@ -665,6 +668,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
 class _WorkerTile extends StatelessWidget {
   final Map<String, dynamic> worker;
+  final bool isCurrentUser;
   final VoidCallback onEditProfile;
   final VoidCallback onGeneratePassword;
   final VoidCallback onAssignRoles;
@@ -672,6 +676,7 @@ class _WorkerTile extends StatelessWidget {
 
   const _WorkerTile({
     required this.worker,
+    required this.isCurrentUser,
     required this.onEditProfile,
     required this.onGeneratePassword,
     required this.onAssignRoles,
@@ -687,103 +692,144 @@ class _WorkerTile extends StatelessWidget {
     final sales = worker['sales_this_month'] ?? 0;
     final roles = worker['roles'] as List? ?? [];
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: CircleAvatar(
-        radius: 22,
-        backgroundColor: _primary.withValues(alpha: 0.12),
-        child: Text(
-          fullName.toString().isNotEmpty
-              ? fullName.toString()[0].toUpperCase()
-              : '?',
-          style: const TextStyle(
-            color: _primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ),
-      title: Text(
-        fullName,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(email, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-          const SizedBox(height: 6),
-          // Role chips
-          if (roles.isEmpty)
-            Text(
-              'No roles assigned',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.orange.shade700,
-                fontStyle: FontStyle.italic,
+    return Container(
+      decoration: isCurrentUser
+          ? BoxDecoration(
+              color: const Color(0xFF203A43).withValues(alpha: 0.04),
+              border: const Border(
+                left: BorderSide(color: Color(0xFF203A43), width: 4),
               ),
             )
-          else
-            Wrap(
-              spacing: 4,
-              runSpacing: 2,
-              children: roles.map<Widget>((r) {
-                final roleName = r['name']?.toString() ?? '';
-                final isSystem = r['is_system'] == true;
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isSystem
-                        ? _primary.withValues(alpha: 0.08)
-                        : Colors.purple.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSystem
-                          ? _primary.withValues(alpha: 0.35)
-                          : Colors.purple.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Text(
-                    roleName,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isSystem ? _primary : Colors.purple.shade700,
-                    ),
-                  ),
-                );
-              }).toList(),
+          : null,
+      child: ListTile(
+        contentPadding: EdgeInsets.only(
+          left: isCurrentUser ? 12 : 16,
+          right: 16,
+          top: 8,
+          bottom: 8,
+        ),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: isCurrentUser
+              ? const Color(0xFF203A43)
+              : _primary.withValues(alpha: 0.12),
+          child: Text(
+            fullName.toString().isNotEmpty
+                ? fullName.toString()[0].toUpperCase()
+                : '?',
+            style: TextStyle(
+              color: isCurrentUser ? Colors.white : _primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-          const SizedBox(height: 4),
-          Text(
-            'Sales this month: $sales',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           ),
-        ],
-      ),
-      isThreeLine: true,
-      trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert, color: _primary),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        onSelected: (value) {
-          switch (value) {
-            case 'edit':
-              onEditProfile();
-            case 'password':
-              onGeneratePassword();
-            case 'roles':
-              onAssignRoles();
-            case 'delete':
-              onDelete();
-          }
-        },
-        itemBuilder: (_) => [
-          _menuItem('edit', Icons.edit_outlined, 'Edit Profile', Colors.blueGrey),
-          _menuItem('password', Icons.key_outlined, 'Generate Password', Colors.orange),
-          _menuItem('roles', Icons.badge_outlined, 'Assign Roles', _primary),
-          const PopupMenuDivider(),
-          _menuItem('delete', Icons.delete_outline, 'Delete User', Colors.red),
-        ],
+        ),
+        title: Row(
+          children: [
+            Text(
+              fullName,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            if (isCurrentUser) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF203A43),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'You',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(email, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            const SizedBox(height: 6),
+            // Role chips
+            if (roles.isEmpty)
+              Text(
+                'No roles assigned',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.orange.shade700,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            else
+              Wrap(
+                spacing: 4,
+                runSpacing: 2,
+                children: roles.map<Widget>((r) {
+                  final roleName = r['name']?.toString() ?? '';
+                  final isSystem = r['is_system'] == true;
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isSystem
+                          ? _primary.withValues(alpha: 0.08)
+                          : Colors.purple.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSystem
+                            ? _primary.withValues(alpha: 0.35)
+                            : Colors.purple.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      roleName,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isSystem ? _primary : Colors.purple.shade700,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'Sales this month: $sales',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+          ],
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: _primary),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (value) {
+            switch (value) {
+              case 'edit':
+                onEditProfile();
+              case 'password':
+                onGeneratePassword();
+              case 'roles':
+                onAssignRoles();
+              case 'delete':
+                onDelete();
+            }
+          },
+          itemBuilder: (_) => [
+            _menuItem('edit', Icons.edit_outlined, 'Edit Profile', Colors.blueGrey),
+            _menuItem('password', Icons.key_outlined, 'Generate Password', Colors.orange),
+            _menuItem('roles', Icons.badge_outlined, 'Assign Roles', _primary),
+            if (!isCurrentUser) ...[
+              const PopupMenuDivider(),
+              _menuItem('delete', Icons.delete_outline, 'Delete User', Colors.red),
+            ],
+          ],
+        ),
       ),
     );
   }
