@@ -82,76 +82,152 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       _tvaRateController.text = '19.00';
     }
 
+    Widget buildField({
+      required TextEditingController controller,
+      required String label,
+      required IconData icon,
+      bool isRtl = false,
+      TextInputType keyboardType = TextInputType.text,
+    }) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            textAlign: isRtl ? TextAlign.right : TextAlign.left,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 18),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF203A43), width: 1.5),
+              ),
+            ),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B)),
+          ),
+        ],
+      );
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          category == null ? 'Add New Category' : 'Edit Category',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A2A32)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF203A43).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.category_outlined, color: Color(0xFF203A43), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              category == null ? 'Add New Category' : 'Edit Category',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+            ),
+          ],
         ),
         content: SizedBox(
           width: 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              buildField(
                 controller: _nameFrController,
-                decoration: InputDecoration(
-                  labelText: 'Name (FR)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
-                  ),
-                ),
+                label: 'Name (FR)',
+                icon: Icons.abc_rounded,
               ),
               const SizedBox(height: 16),
-              TextField(
+              buildField(
                 controller: _nameArController,
-                textAlign: TextAlign.right,
-                decoration: InputDecoration(
-                  labelText: 'Name (AR)',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
-                  ),
-                ),
+                label: 'Name (AR)',
+                icon: Icons.translate_rounded,
+                isRtl: true,
               ),
               const SizedBox(height: 16),
-              TextField(
+              buildField(
                 controller: _tvaRateController,
+                label: 'TVA Rate (%)',
+                icon: Icons.percent_rounded,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'TVA Rate (%)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
-                  ),
-                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await _saveCategory(category?['id']);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF203A43),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Save'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF203A43),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await _saveCategory(category?['id']);
+                  },
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

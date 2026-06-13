@@ -156,46 +156,15 @@ class _ProductsViewState extends State<ProductsView> {
                     ),
                   ],
                 ),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await context.push('/dashboard/products/add');
-                        if (context.mounted) {
-                          context.read<ProductBloc>().add(
-                            LoadProducts(search: _searchController.text),
-                          );
-                        }
-                      },
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                      label: Text(
-                        'products.add_product'.tr(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF203A43),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 26,
-                          vertical: 18,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 4,
-                        shadowColor: const Color(0xFF203A43).withValues(alpha: 0.3),
-                      ),
-                    ),
-                  ),
+                _AddProductButton(
+                  onTap: () async {
+                    await context.push('/dashboard/products/add');
+                    if (context.mounted) {
+                      context.read<ProductBloc>().add(
+                        LoadProducts(search: _searchController.text),
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -914,3 +883,81 @@ class _StatCardState extends State<_StatCard> {
     );
   }
 }
+
+// ─── Add Product Button Widget ──────────────────────────────────────────────
+
+class _AddProductButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _AddProductButton({required this.onTap});
+
+  @override
+  State<_AddProductButton> createState() => _AddProductButtonState();
+}
+
+class _AddProductButtonState extends State<_AddProductButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedScale(
+        scale: _isHovered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF203A43),
+                Color(0xFF2C5364),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF203A43).withValues(alpha: _isHovered ? 0.35 : 0.2),
+                blurRadius: _isHovered ? 12 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: widget.onTap,
+            icon: const Icon(
+              Icons.add_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            label: Text(
+              'products.add_product'.tr(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 18,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

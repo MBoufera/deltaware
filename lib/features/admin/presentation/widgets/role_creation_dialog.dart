@@ -27,106 +27,221 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
     super.dispose();
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 18),
+            hintText: hintText,
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF203A43), width: 1.5),
+            ),
+          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B)),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Create New Role'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Role Name',
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF203A43).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.badge_outlined, color: Color(0xFF203A43), size: 20),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Create New Role',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTextField(
+                controller: _nameController,
+                label: 'Role Name',
                 hintText: 'e.g., Content Manager',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                icon: Icons.badge_outlined,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: 'Description (Optional)',
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: _descriptionController,
+                label: 'Description (Optional)',
                 hintText: 'Describe the purpose of this role',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                icon: Icons.description_outlined,
+                maxLines: 2,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Select Permissions',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
                 ),
               ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Select Permissions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (widget.permissions.isEmpty)
-              const Text('No permissions available')
-            else
-              ...widget.permissions.entries.map((entry) {
-                final category = entry.key;
-                final perms = entry.value;
+              const SizedBox(height: 12),
+              if (widget.permissions.isEmpty)
+                const Text('No permissions available')
+              else
+                ...widget.permissions.entries.map((entry) {
+                  final category = entry.key;
+                  final perms = entry.value;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        category.replaceAll('_', ' ').toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 3,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF203A43),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              category.replaceAll('_', ' ').toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    ...perms.map((perm) {
-                      return CheckboxListTile(
-                        title: Text(perm.name, style: const TextStyle(fontSize: 13)),
-                        subtitle: perm.description != null
-                            ? Text(perm.description!, style: const TextStyle(fontSize: 11))
-                            : null,
-                        value: _selectedPermissions.contains(perm.key),
-                        onChanged: (value) {
-                          setState(() {
-                            if (value == true) {
-                              _selectedPermissions.add(perm.key);
-                            } else {
-                              _selectedPermissions.remove(perm.key);
-                            }
-                          });
-                        },
-                        dense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      );
-                    }).toList(),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              }).toList(),
-          ],
+                      ...perms.map((perm) {
+                        return CheckboxListTile(
+                          title: Text(
+                            perm.name,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                          ),
+                          subtitle: perm.description != null
+                              ? Text(perm.description!, style: TextStyle(fontSize: 11, color: Colors.grey.shade500))
+                              : null,
+                          value: _selectedPermissions.contains(perm.key),
+                          activeColor: const Color(0xFF203A43),
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedPermissions.add(perm.key);
+                              } else {
+                                _selectedPermissions.remove(perm.key);
+                              }
+                            });
+                          },
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  );
+                }),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _createRole,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2C5364),
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Create Role'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _createRole,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF203A43),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  'Create Role',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -136,7 +251,7 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a role name')),
+        const SnackBar(content: Text('Please enter a role name'), backgroundColor: Color(0xFFDC2626)),
       );
       return;
     }

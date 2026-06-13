@@ -35,11 +35,15 @@ class _PosPageState extends State<PosPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F6),
+        backgroundColor: const Color(0xFFF8FAFC),
         body: BlocBuilder<SalesBloc, SalesState>(
           builder: (context, state) {
             if (state is SalesInitial || state is SalesLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF203A43),
+                ),
+              );
             } else if (state is SalesUpdated) {
               return Row(
                 children: [
@@ -64,6 +68,9 @@ class _PosPageState extends State<PosPage> {
                             offset: const Offset(-5, 0),
                           )
                         ],
+                        border: Border(
+                          left: BorderSide(color: Colors.grey.shade200, width: 1),
+                        ),
                       ),
                       child: _buildCart(state),
                     ),
@@ -80,49 +87,41 @@ class _PosPageState extends State<PosPage> {
 
   Widget _buildTopBar(SalesUpdated state) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       color: Colors.white,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Sale Type Pill Selector
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: ToggleButtons(
-              isSelected: [
-                state.saleType == 'detail',
-                state.saleType == 'gros',
-                state.saleType == 'bon_livraison',
-                state.saleType == 'bon_commande',
-                state.saleType == 'gouvernement',
-              ],
-              onPressed: (index) {
-                const types = ['detail', 'gros', 'bon_livraison', 'bon_commande', 'gouvernement'];
-                context.read<SalesBloc>().add(SelectSaleType(types[index]));
-              },
-              borderRadius: BorderRadius.circular(8),
-              selectedColor: Colors.white,
-              fillColor: const Color(0xFF203A43),
-              children: const [
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Détail')),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Gros')),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('BL')),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('BC')),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Gouvernement')),
-              ],
-            ),
+            child: _buildSaleTypeSelector(state),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          // Search Field
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search products by name or reference...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400, size: 20),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: Colors.grey.shade200),
               ),
-              filled: true,
-              fillColor: Colors.grey.shade100,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
+              ),
             ),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
             onChanged: (query) => context.read<SalesBloc>().add(SearchProducts(query)),
           ),
         ],
@@ -130,54 +129,126 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
+  Widget _buildSaleTypeSelector(SalesUpdated state) {
+    final types = [
+      {'key': 'detail', 'label': 'Détail', 'icon': Icons.shopping_bag_outlined},
+      {'key': 'gros', 'label': 'Gros', 'icon': Icons.storefront_rounded},
+      {'key': 'bon_livraison', 'label': 'BL', 'icon': Icons.local_shipping_outlined},
+      {'key': 'bon_commande', 'label': 'BC', 'icon': Icons.description_outlined},
+      {'key': 'gouvernement', 'label': 'Gouvernement', 'icon': Icons.account_balance_outlined},
+    ];
+
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: types.map((t) {
+          final isSelected = state.saleType == t['key'];
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                context.read<SalesBloc>().add(SelectSaleType(t['key'] as String));
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF203A43) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF203A43).withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      t['icon'] as IconData,
+                      size: 16,
+                      color: isSelected ? Colors.white : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      t['label'] as String,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildProductGrid(SalesUpdated state) {
+    if (state.filteredProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No products match your search',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        childAspectRatio: 0.82,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
       ),
       itemCount: state.filteredProducts.length,
       itemBuilder: (context, index) {
         final p = state.filteredProducts[index];
         final price = _getPriceForType(p, state.saleType);
         final stock = _getStockForType(p, state.saleType);
-        
-        return InkWell(
+
+        return _ProductPosCard(
+          product: p,
+          price: price,
+          stock: stock,
           onTap: () => context.read<SalesBloc>().add(AddItemToCart(p)),
-          child: Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: const Icon(Icons.inventory_2, size: 48, color: Colors.blue),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(p['name_fr'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 4),
-                      Text('Stock: $stock', style: TextStyle(color: stock > 0 ? Colors.green : Colors.red, fontSize: 12)),
-                      const SizedBox(height: 8),
-                      Text('${price.toStringAsFixed(2)} DZD', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF203A43), fontSize: 16)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
@@ -187,19 +258,63 @@ class _PosPageState extends State<PosPage> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(24),
-          color: const Color(0xFF1A2A32),
-          width: double.infinity,
-          child: const Text(
-            'Current Sale',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Current Sale',
+                style: TextStyle(
+                  color: Color(0xFF1E293B),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (state.cart.isNotEmpty)
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: TextButton.icon(
+                    onPressed: () => context.read<SalesBloc>().add(ResetSale()),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFB91C1C)),
+                    label: const Text(
+                      'Clear',
+                      style: TextStyle(color: Color(0xFFB91C1C), fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         Expanded(
           child: state.cart.isEmpty
-              ? const Center(child: Text('Cart is empty', style: TextStyle(color: Colors.grey)))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.shopping_basket_outlined, size: 48, color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Cart is empty',
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(24),
                   itemCount: state.cart.length,
                   itemBuilder: (context, index) {
                     final id = state.cart.keys.elementAt(index);
@@ -207,35 +322,112 @@ class _PosPageState extends State<PosPage> {
                     final p = state.products.firstWhere((p) => p['id'] == id);
                     final price = _getPriceForType(p, state.saleType);
                     final total = price * qty;
-                    
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p['name_fr'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  Text('${price.toStringAsFixed(2)} DZD', style: const TextStyle(color: Colors.grey)),
-                                ],
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFF203A43).withValues(alpha: 0.08),
+                            child: Text(
+                              p['name_fr'].toString().isNotEmpty ? p['name_fr'].toString()[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                color: Color(0xFF203A43),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
-                            Row(
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1))),
-                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1))),
+                                Text(
+                                  p['name_fr'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${price.toStringAsFixed(2)} DZD',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ],
                             ),
-                            SizedBox(
-                              width: 80,
-                              child: Text('${total.toStringAsFixed(2)} DZD', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ],
-                        ),
+                            padding: const EdgeInsets.all(2),
+                            child: Row(
+                              children: [
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.remove_rounded, size: 14),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                                    color: const Color(0xFF475569),
+                                    onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1)),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    '$qty',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.add_rounded, size: 14),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                                    color: const Color(0xFF475569),
+                                    onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 80,
+                            child: Text(
+                              '${total.toStringAsFixed(2)} DZD',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -250,47 +442,45 @@ class _PosPageState extends State<PosPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: const Color(0xFFF8FAFC),
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Client:'),
-              TextButton.icon(
-                icon: const Icon(Icons.person_add),
-                label: Text(state.selectedClient != null ? state.selectedClient!['name'] : 'Select Client'),
-                onPressed: () => _showClientDialog(state.saleType),
-              )
-            ],
-          ),
+          _buildClientSelector(state),
+          const SizedBox(height: 12),
           SwitchListTile(
-            title: const Text('Timbre Fiscal (1%)'),
+            title: const Text(
+              'Timbre Fiscal (1%)',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+            ),
             value: state.timbreFiscalEnabled,
             onChanged: (v) => context.read<SalesBloc>().add(ToggleTimbreFiscal(v)),
             contentPadding: EdgeInsets.zero,
+            activeThumbColor: const Color(0xFF203A43),
           ),
-          const Divider(),
+          const Divider(height: 24),
           _buildSummaryRow('Total HT', state.totalHt),
           ...state.tvaBreakdown.entries.map((e) => _buildSummaryRow('TVA ${e.key}%', e.value)),
           if (state.timbreFiscalEnabled) _buildSummaryRow('Timbre', state.timbreFiscal),
-          const Divider(thickness: 2),
+          const Divider(height: 24, thickness: 1.5),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('TOTAL TTC', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              Text('${state.grandTotalTtc.toStringAsFixed(2)} DZD', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.green)),
+              const Text('TOTAL TTC', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+              Text(
+                '${state.grandTotalTtc.toStringAsFixed(2)} DZD',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF047857)),
+              ),
             ],
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height: 54,
             child: ElevatedButton(
-              onPressed: (state.cart.isEmpty || state is SalesSubmitting) 
-                  ? null 
+              onPressed: (state.cart.isEmpty || state is SalesSubmitting)
+                  ? null
                   : () {
                       if (['gros', 'bon_livraison', 'bon_commande', 'gouvernement'].contains(state.saleType) && state.selectedClient == null) {
                         _showClientDialog(state.saleType);
@@ -301,14 +491,66 @@ class _PosPageState extends State<PosPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF203A43),
                 foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: state is SalesSubmitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('CONFIRM SALE', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    )
+                  : const Text(
+                      'CONFIRM SALE',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
             ),
           )
         ],
+      ),
+    );
+  }
+
+  Widget _buildClientSelector(SalesUpdated state) {
+    final hasClient = state.selectedClient != null;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showClientDialog(state.saleType),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasClient ? const Color(0xFF203A43).withValues(alpha: 0.3) : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.person_outline_rounded,
+                color: hasClient ? const Color(0xFF203A43) : Colors.grey.shade500,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  hasClient ? state.selectedClient!['name'] : 'Select Client',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: hasClient ? const Color(0xFF1E293B) : Colors.grey.shade500,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                color: Colors.grey.shade500,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -319,8 +561,11 @@ class _PosPageState extends State<PosPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text('${amount.toStringAsFixed(2)} DZD', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(
+            '${amount.toStringAsFixed(2)} DZD',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B)),
+          ),
         ],
       ),
     );
@@ -342,36 +587,111 @@ class _PosPageState extends State<PosPage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sale Successful!'),
-        content: Text('Sale Reference: ${state.response['sale_number']}\nTotal: ${state.totalTtc.toStringAsFixed(2)} DZD'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.read<SalesBloc>().add(ResetSale());
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => DocumentViewerPage(saleId: state.response['sale_id']),
-              ));
-            },
-            child: const Text('Print Document'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.read<SalesBloc>().add(ResetSale());
-            },
-            child: const Text('New Sale'),
-          ),
-        ],
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFECFDF5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Color(0xFF10B981),
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Sale Successful!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Sale Reference: ${state.response['sale_number']}\nTotal: ${state.totalTtc.toStringAsFixed(2)} DZD',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      context.read<SalesBloc>().add(ResetSale());
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => DocumentViewerPage(saleId: state.response['sale_id']),
+                      ));
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF203A43),
+                      side: const BorderSide(color: Color(0xFF203A43)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    label: const Text(
+                      'Print',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF203A43),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      context.read<SalesBloc>().add(ResetSale());
+                    },
+                    child: const Text(
+                      'New Sale',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // --- Helpers ---
   double _getPriceForType(Map<String, dynamic> product, String saleType) {
     final pricing = product['product_pricing'];
     if (pricing == null) return 0.0;
-    
+
     if (saleType == 'detail') {
       return (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0;
     } else {
@@ -382,11 +702,147 @@ class _PosPageState extends State<PosPage> {
   double _getStockForType(Map<String, dynamic> product, String saleType) {
     final stock = product['stock'];
     if (stock == null) return 0.0;
-    
+
     if (saleType == 'detail') {
       return (stock['qty_detail'] as num?)?.toDouble() ?? 0.0;
     } else {
       return (stock['qty_gros'] as num?)?.toDouble() ?? 0.0;
     }
+  }
+}
+
+class _ProductPosCard extends StatefulWidget {
+  final Map<String, dynamic> product;
+  final double price;
+  final double stock;
+  final VoidCallback onTap;
+
+  const _ProductPosCard({
+    required this.product,
+    required this.price,
+    required this.stock,
+    required this.onTap,
+  });
+
+  @override
+  State<_ProductPosCard> createState() => _ProductPosCardState();
+}
+
+class _ProductPosCardState extends State<_ProductPosCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOutOfStock = widget.stock <= 0;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = !isOutOfStock),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: isOutOfStock ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+      child: AnimatedScale(
+        scale: _isHovered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            color: isOutOfStock ? Colors.grey.shade50 : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered
+                  ? const Color(0xFF203A43).withValues(alpha: 0.15)
+                  : Colors.grey.shade200,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: _isHovered ? 0.05 : 0.02),
+                blurRadius: _isHovered ? 12 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: isOutOfStock ? null : widget.onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Opacity(
+              opacity: isOutOfStock ? 0.6 : 1.0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      decoration: BoxDecoration(
+                        color: isOutOfStock
+                            ? Colors.grey.shade100
+                            : const Color(0xFF203A43).withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.inventory_2_outlined,
+                        size: 40,
+                        color: isOutOfStock ? Colors.grey : const Color(0xFF203A43),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.product['name_fr'] ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Color(0xFF1E293B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isOutOfStock
+                                ? const Color(0xFFFEE2E2)
+                                : const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isOutOfStock
+                                  ? const Color(0xFFFCA5A5)
+                                  : const Color(0xFFA7F3D0),
+                            ),
+                          ),
+                          child: Text(
+                            isOutOfStock ? 'Rupture' : 'En stock: ${widget.stock.toInt()}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isOutOfStock
+                                  ? const Color(0xFFB91C1C)
+                                  : const Color(0xFF047857),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${widget.price.toStringAsFixed(2)} DZD',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF203A43),
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

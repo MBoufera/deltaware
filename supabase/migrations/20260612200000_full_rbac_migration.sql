@@ -69,8 +69,6 @@ BEGIN
                 '[]'::jsonb
             ) as roles
         FROM auth.users u
-        WHERE (u.raw_user_meta_data->>'role') IS NULL
-           OR (u.raw_user_meta_data->>'role') != 'admin'
     ) worker_row;
 
     RETURN COALESCE(result, '[]'::jsonb);

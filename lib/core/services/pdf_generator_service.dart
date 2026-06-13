@@ -404,7 +404,7 @@ class PdfGeneratorService {
             storeSettings['phone'] != null) ...[
           pw.SizedBox(height: 2),
           pw.Text(
-            '${storeSettings['address'] ?? ''} ${storeSettings['phone'] != null ? 'Tél: ' + storeSettings['phone'].toString() : ''}',
+            '${storeSettings['address'] ?? ''} ${storeSettings['phone'] != null ? 'Tél: ${storeSettings['phone']}' : ''}',
             style: const pw.TextStyle(fontSize: 7),
             textAlign: pw.TextAlign.center,
           ),
