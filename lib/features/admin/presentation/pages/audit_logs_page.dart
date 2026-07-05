@@ -50,9 +50,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAuditLogs();
-    });
+    _loadAuditLogs();
   }
 
   void _loadAuditLogs() {

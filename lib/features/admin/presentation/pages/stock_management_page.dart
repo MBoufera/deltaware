@@ -60,12 +60,26 @@ class _StockManagementPageState extends State<StockManagementPage> {
   void _onProductSelected(Map<String, dynamic>? product) {
     setState(() {
       _selectedProduct = product;
-      if (product != null && product['stock'] != null && product['stock'].isNotEmpty) {
-        final stock = product['stock'][0];
-        _superGrosController.text = stock['qty_super_gros'].toString();
-        _grosController.text = stock['qty_gros'].toString();
-        _detailController.text = stock['qty_detail'].toString();
-        _alertThresholdController.text = stock['alert_threshold'].toString();
+      if (product != null && product['stock'] != null) {
+        dynamic stockData = product['stock'];
+        Map<String, dynamic>? stock;
+        if (stockData is List && stockData.isNotEmpty) {
+          stock = stockData[0] as Map<String, dynamic>?;
+        } else if (stockData is Map) {
+          stock = Map<String, dynamic>.from(stockData);
+        }
+
+        if (stock != null) {
+          _superGrosController.text = (stock['qty_super_gros'] ?? 0).toString();
+          _grosController.text = (stock['qty_gros'] ?? 0).toString();
+          _detailController.text = (stock['qty_detail'] ?? 0).toString();
+          _alertThresholdController.text = (stock['alert_threshold'] ?? 5).toString();
+        } else {
+          _superGrosController.text = '0';
+          _grosController.text = '0';
+          _detailController.text = '0';
+          _alertThresholdController.text = '5';
+        }
       } else {
         _superGrosController.text = '0';
         _grosController.text = '0';

@@ -82,108 +82,100 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             );
           }
         },
-        child: Stack(
-          children: [
-            // Dynamic Background
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        child: isDesktop
+            ? _buildDesktopLayout(theme)
+            : Stack(
+                children: [
+                  // Dynamic Background
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            // Background blur effect
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(color: Colors.black.withValues(alpha: 0.1)),
-              ),
-            ),
-            
-            // Main Content
-            Center(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: isDesktop ? _buildDesktopLayout(theme) : _buildMobileLayout(theme),
+                  // Background blur effect
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(color: Colors.black.withValues(alpha: 0.1)),
+                    ),
                   ),
-                ),
+                  
+                  // Main Content
+                  Center(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: _buildMobileLayout(theme),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   Widget _buildDesktopLayout(ThemeData theme) {
-    return Container(
-      width: 900,
-      height: 600,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Row(
-            children: [
-              // Left side branding
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(40),
-                  color: Colors.black.withValues(alpha: 0.2),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.blur_on, size: 80, color: Colors.white),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Deltaware',
-                        style: theme.textTheme.displaySmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'auth.brand_desc'.tr(),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
+    return SizedBox.expand(
+      child: Row(
+        children: [
+          // Left side branding
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(40),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-              // Right side login form
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(40),
-                  color: Colors.white,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.blur_on, size: 80, color: Colors.white),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Deltaware',
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'auth.brand_desc'.tr(),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Right side login form
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(40),
+              color: Colors.white,
+              child: Center(
+                child: SingleChildScrollView(
                   child: _buildLoginForm(theme),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

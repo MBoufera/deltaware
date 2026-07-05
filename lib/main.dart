@@ -33,15 +33,37 @@ import 'features/store/presentation/pages/store_selection_page.dart';
 import 'features/store/presentation/pages/create_store_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    await windowManager.ensureInitialized();
+  }
+
   await Supabase.initialize(
     url: 'https://dggulctustnlfyadcanx.supabase.co',
     publishableKey: 'sb_publishable_4Axc_w_YA32cG_R9cZEIog_BrYh0RWR',
   );
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      await windowManager.setMinimumSize(const Size(1024, 768));
+      await windowManager.setSize(const Size(1280, 720));
+      await windowManager.setResizable(true);
+      await windowManager.center();
+    } else {
+      await windowManager.setMinimumSize(const Size(900, 600));
+      await windowManager.setSize(const Size(900, 600));
+      await windowManager.setResizable(false);
+      await windowManager.center();
+    }
+  }
 
   runApp(
     EasyLocalization(
@@ -252,6 +274,19 @@ class MyApp extends StatelessWidget {
           if (authState is AuthUnauthenticated) {
             context.read<StoreBloc>().add(ResetStore());
             _router.go('/');
+            if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+              windowManager.setResizable(false);
+              windowManager.setMinimumSize(const Size(900, 600));
+              windowManager.setSize(const Size(900, 600));
+              windowManager.center();
+            }
+          } else if (authState is AuthAuthenticated || authState is AuthSuperAdmin) {
+            if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+              windowManager.setResizable(true);
+              windowManager.setMinimumSize(const Size(1024, 768));
+              windowManager.setSize(const Size(1280, 720));
+              windowManager.center();
+            }
           }
         },
         child: MaterialApp.router(
