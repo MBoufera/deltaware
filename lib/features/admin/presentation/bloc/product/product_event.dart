@@ -28,6 +28,11 @@ class CreateProduct extends ProductEvent {
   final double wholesaleMargin;
   final double retailMultiplier;
   final String? storeId;
+  final double qtySuperGros;
+  final double qtyGros;
+  final double qtyDetail;
+  final double alertThreshold;
+  final int contenance;
 
   const CreateProduct({
     required this.nameFr,
@@ -39,6 +44,11 @@ class CreateProduct extends ProductEvent {
     required this.wholesaleMargin,
     required this.retailMultiplier,
     this.storeId,
+    this.qtySuperGros = 0.0,
+    this.qtyGros = 0.0,
+    this.qtyDetail = 0.0,
+    this.alertThreshold = 5.0,
+    this.contenance = 1,
   });
 
   @override
@@ -52,6 +62,11 @@ class CreateProduct extends ProductEvent {
         wholesaleMargin,
         retailMultiplier,
         storeId,
+        qtySuperGros,
+        qtyGros,
+        qtyDetail,
+        alertThreshold,
+        contenance,
       ];
 }
 
@@ -75,6 +90,7 @@ class UpdateProduct extends ProductEvent {
   final double wholesaleMargin;
   final double retailMultiplier;
   final String? storeId;
+  final int contenance;
 
   const UpdateProduct({
     required this.id,
@@ -87,6 +103,7 @@ class UpdateProduct extends ProductEvent {
     required this.wholesaleMargin,
     required this.retailMultiplier,
     this.storeId,
+    this.contenance = 1,
   });
 
   @override
@@ -101,6 +118,7 @@ class UpdateProduct extends ProductEvent {
         wholesaleMargin,
         retailMultiplier,
         storeId,
+        contenance,
       ];
 }
 
