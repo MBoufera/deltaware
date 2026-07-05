@@ -16,152 +16,148 @@ class PermissionsBloc extends Bloc<PermissionsEvent, PermissionsState> {
     on<ClearPermissions>(_onClearPermissions);
   }
 
-  Future<void> _onLoadPermissions(LoadPermissions event, Emitter<PermissionsState> emit) async {
-    // Check if we have valid cached permissions
-    if (!state.isCacheExpired() && state.permissions.isNotEmpty && state.lastLoadedAt != null) {
-      return; // Use cached permissions
+  // ─── Internal Logic ───────────────────────────────────────────────────────
+
+  Future<PermissionsState> _buildState({
+    required String userId,
+    required String role,
+    String? storeId,
+    bool forceReload = false,
+  }) async {
+    // Check cache validity
+    if (!forceReload &&
+        !state.isCacheExpired() &&
+        state.permissions.isNotEmpty &&
+        state.lastLoadedAt != null) {
+      return state; // Use cache
     }
 
-    emit(state.copyWith(isLoading: true, userId: event.userId));
+    final currentUser = _supabase.auth.currentUser;
+    final isSuperAdminUser = currentUser?.userMetadata?['is_super_admin'] == true;
+    final userMetaRole = currentUser?.userMetadata?['role'] as String? ?? '';
 
-    bool isSystemAdmin = event.role == 'admin';
+    bool isSystemAdmin = role == 'admin' ||
+        role == 'super_admin' ||
+        userMetaRole == 'admin' ||
+        userMetaRole == 'super_admin' ||
+        isSuperAdminUser;
 
-    // Double check with DB roles
-    try {
-      final rolesResponse = await _supabase
-          .from('user_roles')
-          .select('roles(name)')
-          .eq('user_id', event.userId);
-      
-      final rolesList = rolesResponse as List? ?? [];
-      final hasAdminRole = rolesList.any((row) {
-        final rolesMap = row['roles'];
-        return rolesMap is Map && rolesMap['name'] == 'Admin';
-      });
-      if (hasAdminRole) {
-        isSystemAdmin = true;
+    // Verify admin status via DB roles (store-scoped if storeId provided)
+    if (!isSystemAdmin) {
+      try {
+        final rolesQuery = _supabase
+            .from('user_roles')
+            .select('roles(name)')
+            .eq('user_id', userId);
+
+        final rolesResponse = await (storeId != null
+            ? rolesQuery.eq('store_id', storeId)
+            : rolesQuery);
+
+        final rolesList = rolesResponse as List? ?? [];
+        final hasAdminRole = rolesList.any((row) {
+          final rolesMap = row['roles'];
+          return rolesMap is Map && rolesMap['name'] == 'Admin';
+        });
+        if (hasAdminRole) isSystemAdmin = true;
+      } catch (e) {
+        debugPrint('Error checking admin roles: $e');
       }
-    } catch (e) {
-      // Silently fall back to metadata role if query fails
-      debugPrint('Error fetching user roles for admin check: $e');
+    }
+
+    // Verify admin status via store_members table
+    if (!isSystemAdmin && storeId != null) {
+      try {
+        final memberResponse = await _supabase
+            .from('store_members')
+            .select('store_role')
+            .eq('store_id', storeId)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (memberResponse != null) {
+          final storeRole = memberResponse['store_role'] as String?;
+          if (storeRole == 'super_admin' || storeRole == 'admin') {
+            isSystemAdmin = true;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error checking store_members role: $e');
+      }
     }
 
     if (isSystemAdmin) {
-      emit(state.copyWith(
+      return state.copyWith(
         isLoading: false,
         isAdmin: true,
         permissions: {},
         lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
-      return;
+        userId: userId,
+      );
     }
 
     try {
-      // Load permissions from user's RBAC roles
-      final response = await _supabase.rpc(
-        'get_user_permissions',
-        params: {'p_user_id': event.userId},
-      );
+      final params = <String, dynamic>{'p_user_id': userId};
+      if (storeId != null) params['p_store_id'] = storeId;
 
-      final permissionsList = response as List? ?? [];
-      final permissionsMap = <String, dynamic>{};
-      for (var permKey in permissionsList) {
-        permissionsMap[permKey as String] = true;
-      }
+      final response = await _supabase.rpc('get_user_permissions', params: params);
+      final permList = response as List? ?? [];
+      final permsMap = <String, dynamic>{
+        for (var k in permList) k as String: true
+      };
 
-      emit(state.copyWith(
+      return state.copyWith(
         isLoading: false,
         isAdmin: false,
-        permissions: permissionsMap,
+        permissions: permsMap,
         lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
+        userId: userId,
+      );
     } catch (e) {
-      emit(state.copyWith(
+      return state.copyWith(
         isLoading: false,
         isAdmin: false,
         permissions: {},
         lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
+        userId: userId,
+      );
     }
   }
 
-  Future<void> _onRefreshPermissions(RefreshPermissions event, Emitter<PermissionsState> emit) async {
-    // Force reload permissions, bypassing cache
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  Future<void> _onLoadPermissions(
+    LoadPermissions event,
+    Emitter<PermissionsState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, userId: event.userId));
+    final next = await _buildState(
+      userId: event.userId,
+      role: event.role,
+      storeId: event.storeId,
+    );
+    emit(next);
+  }
 
-    bool isSystemAdmin = event.role == 'admin';
-
-    // Double check with DB roles
-    try {
-      final rolesResponse = await _supabase
-          .from('user_roles')
-          .select('roles(name)')
-          .eq('user_id', event.userId);
-      
-      final rolesList = rolesResponse as List? ?? [];
-      final hasAdminRole = rolesList.any((row) {
-        final rolesMap = row['roles'];
-        return rolesMap is Map && rolesMap['name'] == 'Admin';
-      });
-      if (hasAdminRole) {
-        isSystemAdmin = true;
-      }
-    } catch (e) {
-      // Silently fall back to metadata role if query fails
-      debugPrint('Error fetching user roles for admin check: $e');
-    }
-
-    if (isSystemAdmin) {
-      emit(state.copyWith(
-        isLoading: false,
-        isAdmin: true,
-        permissions: {},
-        lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
-      return;
-    }
-
-    try {
-      final response = await _supabase.rpc(
-        'get_user_permissions',
-        params: {'p_user_id': event.userId},
-      );
-
-      final permissionsList = response as List? ?? [];
-      final permissionsMap = <String, dynamic>{};
-      for (var permKey in permissionsList) {
-        permissionsMap[permKey as String] = true;
-      }
-
-      emit(state.copyWith(
-        isLoading: false,
-        isAdmin: false,
-        permissions: permissionsMap,
-        lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        isAdmin: false,
-        permissions: {},
-        lastLoadedAt: DateTime.now(),
-        userId: event.userId,
-      ));
-    }
+  Future<void> _onRefreshPermissions(
+    RefreshPermissions event,
+    Emitter<PermissionsState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, userId: event.userId));
+    final next = await _buildState(
+      userId: event.userId,
+      role: event.role,
+      storeId: event.storeId,
+      forceReload: true,
+    );
+    emit(next);
   }
 
   void _onClearPermissions(ClearPermissions event, Emitter<PermissionsState> emit) {
-    // Clear extended permissions if userId available
     if (state.userId != null) {
       try {
         permissionService.clearUserPermissions(state.userId!);
       } catch (_) {}
     }
-    emit(PermissionsState()); // reset to default loading state
+    emit(PermissionsState());
   }
 }

@@ -10,11 +10,12 @@ abstract class ProductEvent extends Equatable {
 class LoadProducts extends ProductEvent {
   final String? search;
   final String? categoryId;
+  final String? storeId;
 
-  const LoadProducts({this.search, this.categoryId});
+  const LoadProducts({this.search, this.categoryId, this.storeId});
 
   @override
-  List<Object?> get props => [search, categoryId];
+  List<Object?> get props => [search, categoryId, storeId];
 }
 
 class CreateProduct extends ProductEvent {
@@ -26,6 +27,7 @@ class CreateProduct extends ProductEvent {
   final double tva;
   final double wholesaleMargin;
   final double retailMultiplier;
+  final String? storeId;
 
   const CreateProduct({
     required this.nameFr,
@@ -36,6 +38,7 @@ class CreateProduct extends ProductEvent {
     required this.tva,
     required this.wholesaleMargin,
     required this.retailMultiplier,
+    this.storeId,
   });
 
   @override
@@ -48,6 +51,7 @@ class CreateProduct extends ProductEvent {
         tva,
         wholesaleMargin,
         retailMultiplier,
+        storeId,
       ];
 }
 
@@ -70,6 +74,7 @@ class UpdateProduct extends ProductEvent {
   final double tva;
   final double wholesaleMargin;
   final double retailMultiplier;
+  final String? storeId;
 
   const UpdateProduct({
     required this.id,
@@ -81,6 +86,7 @@ class UpdateProduct extends ProductEvent {
     required this.tva,
     required this.wholesaleMargin,
     required this.retailMultiplier,
+    this.storeId,
   });
 
   @override
@@ -94,6 +100,7 @@ class UpdateProduct extends ProductEvent {
         tva,
         wholesaleMargin,
         retailMultiplier,
+        storeId,
       ];
 }
 

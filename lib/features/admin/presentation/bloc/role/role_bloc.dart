@@ -41,7 +41,7 @@ class RoleBloc extends Bloc<RoleEvent, RoleState> {
   Future<void> _onLoadUserRoles(LoadUserRoles event, Emitter<RoleState> emit) async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
-      final userRoles = await roleService.getUserRoles(event.userId);
+      final userRoles = await roleService.getUserRoles(event.userId, storeId: event.storeId);
       emit(state.copyWith(
         isLoading: false,
         userRoles: userRoles,
@@ -207,14 +207,14 @@ class RoleBloc extends Bloc<RoleEvent, RoleState> {
     try {
       // Run all removals first
       for (final roleId in event.rolesToRemove) {
-        await roleService.removeRoleFromUser(event.userId, roleId);
+        await roleService.removeRoleFromUser(event.userId, roleId, storeId: event.storeId);
       }
       // Then all additions
       for (final roleId in event.rolesToAdd) {
-        await roleService.assignRoleToUser(event.userId, roleId);
+        await roleService.assignRoleToUser(event.userId, roleId, storeId: event.storeId);
       }
       // Single refresh after all changes are done
-      final updatedUserRoles = await roleService.getUserRoles(event.userId);
+      final updatedUserRoles = await roleService.getUserRoles(event.userId, storeId: event.storeId);
       emit(state.copyWith(
         isLoading: false,
         userRoles: updatedUserRoles,

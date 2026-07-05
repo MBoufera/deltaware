@@ -7,6 +7,9 @@ import '../../features/auth/presentation/bloc/permissions_bloc.dart';
 import '../../features/auth/presentation/bloc/permissions_state.dart';
 import '../../features/admin/data/services/audit_service.dart';
 
+import '../../features/store/presentation/bloc/store_bloc.dart';
+import '../../features/store/presentation/bloc/store_state.dart';
+
 /// Widget that protects routes based on permissions
 /// Wraps route builders to enforce permission checks at the routing level
 class RoutePermissionGuard extends StatefulWidget {
@@ -51,7 +54,7 @@ class _RoutePermissionGuardState extends State<RoutePermissionGuard> {
         }
 
         // User doesn't have permission - log and show access denied with specific error
-        _logPermissionDenial(state);
+        _logPermissionDenial(context, state);
 
         final errorInfo = _getErrorInfo(state);
 
@@ -90,17 +93,6 @@ class _RoutePermissionGuardState extends State<RoutePermissionGuard> {
                         color: Colors.blueGrey.shade600,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    if (errorInfo['suggestion'] != null)
-                      Text(
-                        errorInfo['suggestion']!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.amber.shade700,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
                     if (errorInfo['requiredPermission'] != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12.0),
@@ -225,13 +217,21 @@ class _RoutePermissionGuardState extends State<RoutePermissionGuard> {
   }
 
   /// Log permission denial to audit service
-  Future<void> _logPermissionDenial(PermissionsState permissionsState) async {
+  Future<void> _logPermissionDenial(BuildContext context, PermissionsState permissionsState) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
       final requiredPermission = RoutePermissions.getRequiredPermission(widget.route);
       final denialReason = _getErrorInfo(permissionsState)['message'] ?? 'Access denied';
+
+      String? storeId;
+      try {
+        final storeState = context.read<StoreBloc>().state;
+        if (storeState is StoresLoaded) {
+          storeId = storeState.selectedStore?.id;
+        }
+      } catch (_) {}
 
       await _auditService.logAction(
         adminId: user.id,
@@ -241,6 +241,7 @@ class _RoutePermissionGuardState extends State<RoutePermissionGuard> {
         resourceName: widget.route,
         reason: 'Unauthorized access attempt: $denialReason',
         status: 'denied',
+        storeId: storeId,
       );
 
       // For privilege escalation attempts (trying to access admin routes without admin role)
@@ -255,6 +256,7 @@ class _RoutePermissionGuardState extends State<RoutePermissionGuard> {
           resourceName: widget.route,
           reason: 'Non-admin attempted to access admin route: ${widget.route}',
           status: 'denied',
+          storeId: storeId,
         );
       }
     } catch (e) {

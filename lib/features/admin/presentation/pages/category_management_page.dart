@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 
 class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
@@ -44,7 +47,14 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   Future<void> _fetchCategories() async {
     setState(() => _isLoading = true);
     try {
-      final data = await _supabase.from('categories').select('*').order('name_fr');
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
+      var query = _supabase.from('categories').select('*');
+      if (storeId != null) {
+        query = query.eq('store_id', storeId);
+      }
+      final data = await query.order('name_fr');
       if (mounted) {
         setState(() {
           _categories = data;
@@ -236,10 +246,14 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
 
   Future<void> _saveCategory(String? id) async {
     try {
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
       final data = {
         'name_fr': _nameFrController.text,
         'name_ar': _nameArController.text,
         'tva_rate': double.tryParse(_tvaRateController.text) ?? 19.00,
+        if (id == null && storeId != null) 'store_id': storeId,
       };
 
       if (id == null) {

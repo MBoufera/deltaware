@@ -18,7 +18,8 @@ class SalesUpdated extends SalesState {
   final Map<String, int> cart;
   final Map<String, dynamic>? selectedClient;
   final bool timbreFiscalEnabled;
-  
+  final String storeId;
+
   // Computed totals
   final double totalHt;
   final Map<double, double> tvaBreakdown;
@@ -34,6 +35,7 @@ class SalesUpdated extends SalesState {
     required this.cart,
     this.selectedClient,
     required this.timbreFiscalEnabled,
+    required this.storeId,
     required this.totalHt,
     required this.tvaBreakdown,
     required this.totalTva,
@@ -49,6 +51,7 @@ class SalesUpdated extends SalesState {
     Map<String, int>? cart,
     Map<String, dynamic>? selectedClient,
     bool? timbreFiscalEnabled,
+    String? storeId,
     double? totalHt,
     Map<double, double>? tvaBreakdown,
     double? totalTva,
@@ -63,6 +66,7 @@ class SalesUpdated extends SalesState {
       cart: cart ?? this.cart,
       selectedClient: selectedClient ?? this.selectedClient,
       timbreFiscalEnabled: timbreFiscalEnabled ?? this.timbreFiscalEnabled,
+      storeId: storeId ?? this.storeId,
       totalHt: totalHt ?? this.totalHt,
       tvaBreakdown: tvaBreakdown ?? this.tvaBreakdown,
       totalTva: totalTva ?? this.totalTva,
@@ -80,6 +84,7 @@ class SalesUpdated extends SalesState {
         cart,
         selectedClient,
         timbreFiscalEnabled,
+        storeId,
         totalHt,
         tvaBreakdown,
         totalTva,
@@ -97,6 +102,7 @@ class SalesSubmitting extends SalesUpdated {
     required super.cart,
     super.selectedClient,
     required super.timbreFiscalEnabled,
+    required super.storeId,
     required super.totalHt,
     required super.tvaBreakdown,
     required super.totalTva,

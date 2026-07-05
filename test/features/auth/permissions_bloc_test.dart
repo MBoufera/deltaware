@@ -9,6 +9,7 @@ import 'package:deltaware/features/auth/presentation/bloc/permissions_state.dart
 
 class MockSupabaseClient extends Mock implements SupabaseClient {}
 class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
+class MockGoTrueClient extends Mock implements GoTrueClient {}
 
 class FakePostgrestFilterBuilder<T> extends Fake implements PostgrestFilterBuilder<T> {
   final T _value;
@@ -33,11 +34,15 @@ void main() {
     late PermissionsBloc permissionsBloc;
     late MockSupabaseClient mockSupabaseClient;
     late MockSupabaseQueryBuilder mockQueryBuilder;
+    late MockGoTrueClient mockGoTrueClient;
 
     setUp(() {
       mockSupabaseClient = MockSupabaseClient();
       mockQueryBuilder = MockSupabaseQueryBuilder();
+      mockGoTrueClient = MockGoTrueClient();
 
+      when(() => mockSupabaseClient.auth).thenReturn(mockGoTrueClient);
+      when(() => mockGoTrueClient.currentUser).thenReturn(null);
       when(() => mockSupabaseClient.from('user_roles')).thenAnswer((_) => mockQueryBuilder);
       when(() => mockQueryBuilder.select('roles(name)')).thenAnswer(
         (_) => FakePostgrestFilterBuilder<List<Map<String, dynamic>>>([]),

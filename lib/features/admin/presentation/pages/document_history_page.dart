@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 import 'document_viewer_page.dart';
 
 class DocumentHistoryPage extends StatefulWidget {
@@ -28,12 +31,18 @@ class _DocumentHistoryPageState extends State<DocumentHistoryPage> {
 
   Future<void> _fetchSalesHistory() async {
     try {
-      final data = await _supabase
-          .from('sales')
-          .select(
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
+      var query = _supabase.from('sales').select(
             'id, sale_number, sale_type, total_ttc, created_at, clients(name)',
-          )
-          .order('created_at', ascending: false);
+          );
+
+      if (storeId != null) {
+        query = query.eq('store_id', storeId);
+      }
+
+      final data = await query.order('created_at', ascending: false);
 
       if (mounted) {
         setState(() {

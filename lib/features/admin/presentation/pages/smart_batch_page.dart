@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 
 // Represents a row in the data table
 class InventoryItem {
@@ -169,22 +172,33 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
     setState(() => _isLoading = true);
     try {
       final supabase = Supabase.instance.client;
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
 
       final categoryName = 'products.uncategorized'.tr();
-      var categoryResponse = await supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+      var categoryQuery = supabase.from('categories').select('id').eq('name_fr', categoryName);
+      if (storeId != null) {
+        categoryQuery = categoryQuery.eq('store_id', storeId);
+      }
+      var categoryResponse = await categoryQuery.maybeSingle();
+
       String categoryId;
       if (categoryResponse == null) {
-        final newCat = await supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+        final insertData = <String, dynamic>{'name_fr': categoryName};
+        if (storeId != null) insertData['store_id'] = storeId;
+        final newCat = await supabase.from('categories').insert(insertData).select('id').single();
         categoryId = newCat['id'];
       } else {
         categoryId = categoryResponse['id'];
       }
 
       for (var item in _items) {
-        final productResponse = await supabase.from('products').insert({
+        final insertProductData = <String, dynamic>{
           'name_fr': item.name,
           'category_id': categoryId,
-        }).select('id').single();
+        };
+        if (storeId != null) insertProductData['store_id'] = storeId;
+        final productResponse = await supabase.from('products').insert(insertProductData).select('id').single();
         
         final productId = productResponse['id'];
         

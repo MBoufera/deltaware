@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 import '../bloc/product/product_bloc.dart';
 import '../bloc/product/product_event.dart';
 import '../bloc/product/product_state.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
 
 class AddProductPage extends StatelessWidget {
   final Map<String, dynamic>? product;
@@ -124,6 +126,9 @@ class _AddProductFormState extends State<AddProductForm> {
           ? 'products.uncategorized'.tr()
           : _categoryController.text;
 
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
       if (widget.product != null) {
         context.read<ProductBloc>().add(
           UpdateProduct(
@@ -137,6 +142,7 @@ class _AddProductFormState extends State<AddProductForm> {
             tva: tva,
             wholesaleMargin: marginPercent,
             retailMultiplier: retailMultiplier,
+            storeId: storeId,
           ),
         );
       } else {
@@ -151,6 +157,7 @@ class _AddProductFormState extends State<AddProductForm> {
             tva: tva,
             wholesaleMargin: marginPercent,
             retailMultiplier: retailMultiplier,
+            storeId: storeId,
           ),
         );
       }

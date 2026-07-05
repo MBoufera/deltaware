@@ -6,6 +6,8 @@ import '../bloc/analytics/analytics_bloc.dart';
 import '../bloc/analytics/analytics_event.dart';
 import '../bloc/analytics/analytics_state.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_state.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -16,76 +18,102 @@ class AnalyticsPage extends StatefulWidget {
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAnalyticsForCurrentStore();
+    });
+  }
+
+  void _loadAnalyticsForCurrentStore() {
+    final storeState = context.read<StoreBloc>().state;
+    String? storeId;
+    if (storeState is StoresLoaded) storeId = storeState.selectedStore?.id;
+    context.read<AnalyticsBloc>().add(LoadDashboard(storeId: storeId));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PermissionGuard(
       requiredPermission: AppPermission.canViewReports.key,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F6),
-        body: SafeArea(
-        child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
-          builder: (context, state) {
-            if (state is AnalyticsInitial || state is AnalyticsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is AnalyticsError) {
-              return Center(child: Text('Error: ${state.message}'));
-            } else if (state is AnalyticsLoaded) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context, state),
-                    const SizedBox(height: 32),
-                    _buildKpiRow(state.summary),
-                    const SizedBox(height: 32),
-                    Row(
+      child: BlocListener<StoreBloc, StoreState>(
+        listenWhen: (prev, curr) {
+          final prevId = prev is StoresLoaded ? prev.selectedStore?.id : null;
+          final currId = curr is StoresLoaded ? curr.selectedStore?.id : null;
+          return prevId != currId;
+        },
+        listener: (context, state) {
+          final storeId = state is StoresLoaded ? state.selectedStore?.id : null;
+          context.read<AnalyticsBloc>().add(LoadDashboard(storeId: storeId));
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF4F7F6),
+          body: SafeArea(
+            child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
+              builder: (context, state) {
+                if (state is AnalyticsInitial || state is AnalyticsLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is AnalyticsError) {
+                  return Center(child: Text('Error: ${state.message}'));
+                } else if (state is AnalyticsLoaded) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          flex: 7,
-                          child: _buildTimelineChart(state.timeline),
+                        _buildHeader(context, state),
+                        const SizedBox(height: 32),
+                        _buildKpiRow(state.summary),
+                        const SizedBox(height: 32),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 7,
+                              child: _buildTimelineChart(state.timeline),
+                            ),
+                            const SizedBox(width: 32),
+                            Expanded(
+                              flex: 3,
+                              child: _buildCategoryPieChart(
+                                state.categoryBreakdown,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          flex: 3,
-                          child: _buildCategoryPieChart(
-                            state.categoryBreakdown,
-                          ),
+                        const SizedBox(height: 32),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildLeaderboard(
+                                'Meilleurs Vendeurs',
+                                state.topWorkers,
+                                (w) => w['name'],
+                                (w) =>
+                                    '${(w['revenue_ht'] as num).toStringAsFixed(0)} DZD',
+                              ),
+                            ),
+                            const SizedBox(width: 32),
+                            Expanded(
+                              child: _buildLeaderboard(
+                                'Top Produits',
+                                state.topProducts,
+                                (p) => p['name_fr'],
+                                (p) => '${p['qty_sold']} unités',
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _buildLeaderboard(
-                            'Meilleurs Vendeurs',
-                            state.topWorkers,
-                            (w) => w['name'],
-                            (w) =>
-                                '${(w['revenue_ht'] as num).toStringAsFixed(0)} DZD',
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          child: _buildLeaderboard(
-                            'Top Produits',
-                            state.topProducts,
-                            (p) => p['name_fr'],
-                            (p) => '${p['qty_sold']} unités',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox();
-          },
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
+          ),
         ),
-      ),
       ),
     );
   }
@@ -174,8 +202,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   },
                 );
                 if (range != null && context.mounted) {
+                  final storeState = context.read<StoreBloc>().state;
+                  final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
                   context.read<AnalyticsBloc>().add(
-                    ChangeDateRange(from: range.start, to: range.end),
+                    ChangeDateRange(from: range.start, to: range.end, storeId: storeId),
                   );
                 }
               },
@@ -196,8 +226,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
+          final storeState = context.read<StoreBloc>().state;
+          final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
           context.read<AnalyticsBloc>().add(
-            LoadDashboard(period: periodKey),
+            LoadDashboard(period: periodKey, storeId: storeId),
           );
         },
         child: AnimatedContainer(

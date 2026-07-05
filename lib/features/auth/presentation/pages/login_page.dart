@@ -7,6 +7,10 @@ import 'package:easy_localization/easy_localization.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../bloc/permissions_bloc.dart';
+import '../bloc/permissions_event.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_event.dart';
 
 enum UserRole { admin, staff, worker }
 
@@ -21,12 +25,21 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   UserRole _selectedRole = UserRole.admin;
+  bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<PermissionsBloc>().add(ClearPermissions());
+      } catch (_) {}
+      try {
+        context.read<StoreBloc>().add(ResetStore());
+      } catch (_) {}
+    });
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -56,6 +69,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             context.go('/dashboard');
+          } else if (state is AuthSuperAdmin) {
+            context.go('/store-select');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -240,7 +255,18 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           controller: _passwordController,
           label: 'auth.password'.tr(),
           icon: Icons.lock_outline,
-          obscureText: true,
+          obscureText: _obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              color: Colors.grey.shade400,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
         ),
         const SizedBox(height: 16),
         
@@ -398,6 +424,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     required IconData icon,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -414,6 +441,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey.shade600),
           prefixIcon: Icon(icon, color: Colors.grey.shade400),
+          suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),

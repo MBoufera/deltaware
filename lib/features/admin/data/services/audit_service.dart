@@ -138,6 +138,7 @@ class AuditService {
     String status = 'success',
     String? errorMessage,
     String? ipAddress,
+    String? storeId,
   }) async {
     try {
       final response = await _supabase.rpc(
@@ -154,6 +155,7 @@ class AuditService {
           'p_status': status,
           'p_error_message': errorMessage,
           'p_ip_address': ipAddress,
+          'p_store_id': storeId,
         },
       );
       return response as String?;
@@ -173,6 +175,7 @@ class AuditService {
     String? status,
     DateTime? startDate,
     DateTime? endDate,
+    String? storeId,
   }) async {
     try {
       final response =
@@ -187,6 +190,7 @@ class AuditService {
                   'p_status': status,
                   'p_start_date': startDate?.toIso8601String(),
                   'p_end_date': endDate?.toIso8601String(),
+                  'p_store_id': storeId,
                 },
               )
               as List;
@@ -208,6 +212,7 @@ class AuditService {
     String? status,
     DateTime? startDate,
     DateTime? endDate,
+    String? storeId,
   }) async {
     try {
       final response = await _supabase.rpc(
@@ -219,6 +224,7 @@ class AuditService {
           'p_status': status,
           'p_start_date': startDate?.toIso8601String(),
           'p_end_date': endDate?.toIso8601String(),
+          'p_store_id': storeId,
         },
       );
       return response as int;

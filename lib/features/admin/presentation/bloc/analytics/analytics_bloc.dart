@@ -35,7 +35,7 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
           break;
       }
 
-      await _fetchAndEmit(startDate, endDate, event.period, emit);
+      await _fetchAndEmit(startDate, endDate, event.period, emit, event.storeId);
     } catch (e) {
       emit(AnalyticsError(e.toString()));
     }
@@ -44,27 +44,36 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   Future<void> _onChangeDateRange(ChangeDateRange event, Emitter<AnalyticsState> emit) async {
     emit(AnalyticsLoading());
     try {
-      await _fetchAndEmit(event.from, event.to, 'custom', emit);
+      await _fetchAndEmit(event.from, event.to, 'custom', emit, event.storeId);
     } catch (e) {
       emit(AnalyticsError(e.toString()));
     }
   }
 
-  Future<void> _fetchAndEmit(DateTime start, DateTime end, String period, Emitter<AnalyticsState> emit) async {
-    final data = await _supabase.rpc('get_deep_analytics', params: {
+  Future<void> _fetchAndEmit(
+    DateTime start,
+    DateTime end,
+    String period,
+    Emitter<AnalyticsState> emit, [
+    String? storeId,
+  ]) async {
+    final params = <String, dynamic>{
       'start_date': start.toUtc().toIso8601String(),
-      'end_date': end.toUtc().toIso8601String(),
-    });
+      'end_date':   end.toUtc().toIso8601String(),
+    };
+    if (storeId != null) params['p_store_id'] = storeId;
+
+    final data = await _supabase.rpc('get_deep_analytics', params: params);
 
     emit(AnalyticsLoaded(
-      summary: data['kpi'] ?? {},
-      timeline: List<dynamic>.from(data['timeline'] ?? []),
-      topWorkers: List<dynamic>.from(data['top_workers'] ?? []),
-      topProducts: List<dynamic>.from(data['top_products'] ?? []),
+      summary:           data['kpi'] ?? {},
+      timeline:          List<dynamic>.from(data['timeline'] ?? []),
+      topWorkers:        List<dynamic>.from(data['top_workers'] ?? []),
+      topProducts:       List<dynamic>.from(data['top_products'] ?? []),
       categoryBreakdown: List<dynamic>.from(data['category_breakdown'] ?? []),
       fromDate: start,
-      toDate: end,
-      period: period,
+      toDate:   end,
+      period:   period,
     ));
   }
 }

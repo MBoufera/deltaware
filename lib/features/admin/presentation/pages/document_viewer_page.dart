@@ -33,12 +33,24 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
           .eq('id', widget.saleId)
           .single();
 
-      // 2. Fetch Store Settings
-      final settings = await _supabase
-          .from('store_settings')
-          .select()
-          .eq('id', 1)
-          .single();
+      // 2. Fetch Store Settings dynamically based on sale's store_id
+      final storeId = data['store_id'];
+      Map<String, dynamic> settings;
+      if (storeId != null) {
+        settings = await _supabase
+            .from('stores')
+            .select()
+            .eq('id', storeId)
+            .single();
+      } else {
+        // Fallback for legacy sales: query first store
+        final storesList = await _supabase.from('stores').select().order('created_at').limit(1);
+        if (storesList.isNotEmpty) {
+          settings = List<Map<String, dynamic>>.from(storesList).first;
+        } else {
+          settings = await _supabase.from('store_settings').select().eq('id', 1).single();
+        }
+      }
 
       // 3. Generate PDF Bytes
       final bytes = await PdfGeneratorService.generatePdf(data, settings);

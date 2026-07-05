@@ -30,6 +30,7 @@ void main() {
     cart: const {},
     selectedClient: null,
     timbreFiscalEnabled: false,
+    storeId: 'test-store-id',
     totalHt: 0.0,
     tvaBreakdown: const {},
     totalTva: 0.0,

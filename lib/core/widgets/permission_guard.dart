@@ -6,6 +6,9 @@ import '../../features/auth/presentation/bloc/permissions_bloc.dart';
 import '../../features/auth/presentation/bloc/permissions_state.dart';
 import '../../features/admin/data/services/audit_service.dart';
 
+import '../../features/store/presentation/bloc/store_bloc.dart';
+import '../../features/store/presentation/bloc/store_state.dart';
+
 class PermissionGuard extends StatefulWidget {
   final String requiredPermission;
   final Widget child;
@@ -25,13 +28,7 @@ class PermissionGuard extends StatefulWidget {
 }
 
 class _PermissionGuardState extends State<PermissionGuard> {
-  late AuditService _auditService;
-
-  @override
-  void initState() {
-    super.initState();
-    _auditService = AuditService();
-  }
+  final _auditService = AuditService();
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +42,14 @@ class _PermissionGuardState extends State<PermissionGuard> {
           );
         }
 
-        if (state.hasPermission(widget.requiredPermission)) {
+        final hasPermission = state.hasPermission(widget.requiredPermission);
+
+        if (hasPermission) {
           return widget.child;
         }
 
         // Log permission denial
-        _logPermissionDenial(state);
+        _logPermissionDenial(context, state);
 
         return widget.fallback ?? _buildAccessDenied(context, state);
       },
@@ -58,7 +57,7 @@ class _PermissionGuardState extends State<PermissionGuard> {
   }
 
   /// Log permission denial to audit service
-  Future<void> _logPermissionDenial(PermissionsState permissionsState) async {
+  Future<void> _logPermissionDenial(BuildContext context, PermissionsState permissionsState) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
@@ -73,6 +72,14 @@ class _PermissionGuardState extends State<PermissionGuard> {
         permissionName = permission.displayName;
       } catch (_) {}
 
+      String? storeId;
+      try {
+        final storeState = context.read<StoreBloc>().state;
+        if (storeState is StoresLoaded) {
+          storeId = storeState.selectedStore?.id;
+        }
+      } catch (_) {}
+
       await _auditService.logAction(
         adminId: user.id,
         action: 'permission_denied_widget',
@@ -81,6 +88,7 @@ class _PermissionGuardState extends State<PermissionGuard> {
         resourceName: widget.componentName ?? 'Unknown Component',
         reason: 'User attempted to access component requiring: $permissionName',
         status: 'denied',
+        storeId: storeId,
       );
     } catch (e) {
       debugPrint('Error logging permission denial: $e');

@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 import '../bloc/product/product_bloc.dart';
 import '../bloc/product/product_event.dart';
 import '../bloc/product/product_state.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
 
 class ProductsPage extends StatelessWidget {
   const ProductsPage({super.key});
@@ -16,7 +18,11 @@ class ProductsPage extends StatelessWidget {
     return PermissionGuard(
       requiredPermission: AppPermission.canManageProducts.key,
       child: BlocProvider(
-        create: (context) => ProductBloc()..add(const LoadProducts()),
+        create: (context) {
+          final storeState = context.read<StoreBloc>().state;
+          final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+          return ProductBloc()..add(LoadProducts(storeId: storeId));
+        },
         child: const ProductsView(),
       ),
     );
@@ -34,6 +40,11 @@ class _ProductsViewState extends State<ProductsView> {
   final TextEditingController _searchController = TextEditingController();
   bool _showLowStockOnly = false;
   String? _selectedCategory;
+
+  String? _getStoreId() {
+    final storeState = context.read<StoreBloc>().state;
+    return storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+  }
 
   static const _headerStyle = TextStyle(
     fontWeight: FontWeight.bold,
@@ -63,7 +74,7 @@ class _ProductsViewState extends State<ProductsView> {
             onPressed: () {
               final id = product['id'] as String;
               context.read<ProductBloc>().add(DeleteProduct(id));
-              context.read<ProductBloc>().add(LoadProducts(search: _searchController.text));
+              context.read<ProductBloc>().add(LoadProducts(search: _searchController.text, storeId: _getStoreId()));
               Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(
@@ -161,7 +172,7 @@ class _ProductsViewState extends State<ProductsView> {
                     await context.push('/dashboard/products/add');
                     if (context.mounted) {
                       context.read<ProductBloc>().add(
-                        LoadProducts(search: _searchController.text),
+                        LoadProducts(search: _searchController.text, storeId: _getStoreId()),
                       );
                     }
                   },
@@ -294,7 +305,7 @@ class _ProductsViewState extends State<ProductsView> {
                                 ),
                                 onChanged: (value) {
                                   context.read<ProductBloc>().add(
-                                    LoadProducts(search: value),
+                                    LoadProducts(search: value, storeId: _getStoreId()),
                                   );
                                 },
                               ),
@@ -503,6 +514,7 @@ class _ProductsViewState extends State<ProductsView> {
                                                           context.read<ProductBloc>().add(
                                                                 LoadProducts(
                                                                   search: _searchController.text,
+                                                                  storeId: _getStoreId(),
                                                                 ),
                                                               );
                                                         }

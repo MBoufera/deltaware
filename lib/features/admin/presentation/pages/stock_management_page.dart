@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
 import '../../../../core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 
 class StockManagementPage extends StatefulWidget {
   const StockManagementPage({super.key});
@@ -29,11 +32,14 @@ class _StockManagementPageState extends State<StockManagementPage> {
 
   Future<void> _fetchProducts() async {
     try {
-      final data = await _supabase
-          .from('products')
-          .select('id, name_fr, ref_code, stock(*)')
-          .eq('is_active', true)
-          .order('name_fr');
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
+      var query = _supabase.from('products').select('id, name_fr, ref_code, stock(*)');
+      if (storeId != null) {
+        query = query.eq('store_id', storeId);
+      }
+      final data = await query.eq('is_active', true).order('name_fr');
       
       if (mounted) {
         setState(() {

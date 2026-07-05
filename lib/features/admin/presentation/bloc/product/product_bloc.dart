@@ -17,6 +17,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         if (event.categoryId != null) {
           query = query.eq('category_id', event.categoryId!);
         }
+        if (event.storeId != null) {
+          query = query.eq('store_id', event.storeId!);
+        }
         
         final data = await query.order('created_at', ascending: false);
         final productsList = List<Map<String, dynamic>>.from(data);
@@ -44,22 +47,30 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         final categoryName = event.categoryName.isEmpty ? 'Uncategorized' : event.categoryName;
         
         // Find or create category
-        var categoryResponse = await _supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+        var categoryQuery = _supabase.from('categories').select('id').eq('name_fr', categoryName);
+        if (event.storeId != null) {
+          categoryQuery = categoryQuery.eq('store_id', event.storeId!);
+        }
+        var categoryResponse = await categoryQuery.maybeSingle();
         String categoryId;
         if (categoryResponse == null) {
-          final newCat = await _supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+          final insertData = <String, dynamic>{'name_fr': categoryName};
+          if (event.storeId != null) insertData['store_id'] = event.storeId;
+          final newCat = await _supabase.from('categories').insert(insertData).select('id').single();
           categoryId = newCat['id'];
         } else {
           categoryId = categoryResponse['id'];
         }
         
         // Insert product
-        final productResponse = await _supabase.from('products').insert({
+        final insertProductData = <String, dynamic>{
           'name_fr': event.nameFr,
           'name_ar': event.nameAr,
           'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
           'category_id': categoryId,
-        }).select('id').single();
+        };
+        if (event.storeId != null) insertProductData['store_id'] = event.storeId;
+        final productResponse = await _supabase.from('products').insert(insertProductData).select('id').single();
         final productId = productResponse['id'];
         
         // Calculate retail margin percent
@@ -91,10 +102,16 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         final categoryName = event.categoryName.isEmpty ? 'Uncategorized' : event.categoryName;
         
         // Find or create category
-        var categoryResponse = await _supabase.from('categories').select('id').eq('name_fr', categoryName).maybeSingle();
+        var categoryQuery = _supabase.from('categories').select('id').eq('name_fr', categoryName);
+        if (event.storeId != null) {
+          categoryQuery = categoryQuery.eq('store_id', event.storeId!);
+        }
+        var categoryResponse = await categoryQuery.maybeSingle();
         String categoryId;
         if (categoryResponse == null) {
-          final newCat = await _supabase.from('categories').insert({'name_fr': categoryName}).select('id').single();
+          final insertData = <String, dynamic>{'name_fr': categoryName};
+          if (event.storeId != null) insertData['store_id'] = event.storeId;
+          final newCat = await _supabase.from('categories').insert(insertData).select('id').single();
           categoryId = newCat['id'];
         } else {
           categoryId = categoryResponse['id'];

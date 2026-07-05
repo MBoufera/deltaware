@@ -7,7 +7,14 @@ abstract class SalesEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadProducts extends SalesEvent {}
+class LoadProducts extends SalesEvent {
+  /// The store whose products should be loaded.
+  final String storeId;
+  const LoadProducts(this.storeId);
+
+  @override
+  List<Object?> get props => [storeId];
+}
 
 class SelectSaleType extends SalesEvent {
   final String saleType;

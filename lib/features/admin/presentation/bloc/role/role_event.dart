@@ -13,11 +13,12 @@ class LoadAllRoles extends RoleEvent {
 
 class LoadUserRoles extends RoleEvent {
   final String userId;
+  final String? storeId;
 
-  const LoadUserRoles(this.userId);
+  const LoadUserRoles(this.userId, {this.storeId});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [userId, storeId];
 }
 
 class LoadAllPermissions extends RoleEvent {
@@ -101,13 +102,15 @@ class SyncUserRoles extends RoleEvent {
   final String userId;
   final List<String> rolesToAdd;
   final List<String> rolesToRemove;
+  final String? storeId;
 
   const SyncUserRoles({
     required this.userId,
     required this.rolesToAdd,
     required this.rolesToRemove,
+    this.storeId,
   });
 
   @override
-  List<Object?> get props => [userId, rolesToAdd, rolesToRemove];
+  List<Object?> get props => [userId, rolesToAdd, rolesToRemove, storeId];
 }

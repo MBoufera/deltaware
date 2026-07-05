@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_state.dart';
 
 class ClientSelectionDialog extends StatefulWidget {
   final String saleType;
@@ -40,7 +43,14 @@ class _ClientSelectionDialogState extends State<ClientSelectionDialog> {
 
   Future<void> _fetchClients() async {
     try {
-      final data = await _supabase.from('clients').select('*').eq('is_active', true).order('name');
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
+      var query = _supabase.from('clients').select('*').eq('is_active', true);
+      if (storeId != null) {
+        query = query.eq('store_id', storeId);
+      }
+      final data = await query.order('name');
       if (mounted) {
         setState(() {
           _clients = data;
@@ -88,6 +98,9 @@ class _ClientSelectionDialogState extends State<ClientSelectionDialog> {
 
     setState(() => _isLoading = true);
     try {
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
       final data = {
         'name': _nameController.text.trim(),
         'type': _clientType,
@@ -96,6 +109,7 @@ class _ClientSelectionDialogState extends State<ClientSelectionDialog> {
         'nis': _nisController.text.trim(),
         'rc': _rcController.text.trim(),
         'ai': _aiController.text.trim(),
+        'store_id': storeId,
       };
 
       final result = await _supabase.from('clients').insert(data).select().single();

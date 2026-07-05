@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/bloc/permissions_bloc.dart';
 import 'features/admin/presentation/bloc/role/role_bloc.dart';
 import 'core/widgets/route_permission_guard.dart';
 import 'features/admin/presentation/bloc/sales/sales_bloc.dart';
 import 'features/admin/presentation/bloc/analytics/analytics_bloc.dart';
-import 'features/admin/presentation/bloc/analytics/analytics_event.dart';
+import 'features/store/presentation/bloc/store_bloc.dart';
+import 'features/store/presentation/bloc/store_event.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'features/admin/presentation/pages/user_management_page.dart';
@@ -27,6 +29,8 @@ import 'features/admin/presentation/pages/returns_page.dart';
 import 'features/admin/presentation/pages/analytics_page.dart';
 import 'features/admin/presentation/pages/document_history_page.dart';
 import 'features/admin/presentation/pages/audit_logs_page.dart';
+import 'features/store/presentation/pages/store_selection_page.dart';
+import 'features/store/presentation/pages/create_store_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
 
@@ -60,20 +64,48 @@ final GoRouter _router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
     final session = Supabase.instance.client.auth.currentSession;
-    final isGoingToLogin = state.matchedLocation == '/';
+    final loc = state.matchedLocation;
+    final isGoingToLogin = loc == '/';
+    final isGoingToStoreSelect =
+        loc == '/store-select' || loc == '/store-select/create-store';
 
+    // Not logged in — boot to login
+    if (session == null && !isGoingToLogin) return '/';
+
+    // Already logged in — redirect away from login
     if (session != null && isGoingToLogin) {
+      final metadata = session.user.userMetadata ?? {};
+      final isSuperAdmin = metadata['is_super_admin'] == true;
+      // Super admins always start at the store selector
+      if (isSuperAdmin) return '/store-select';
       return '/dashboard';
     }
 
-    if (session == null && !isGoingToLogin) {
-      return '/';
+    // Prevent non-super-admins from accessing store-select directly
+    if (session != null && isGoingToStoreSelect) {
+      // Multi-store non-super-admins are allowed (handled in AdminLayout)
+      return null;
     }
 
     return null;
   },
   routes: [
+    // ── Login ────────────────────────────────────────────────────────────
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
+
+    // ── Store Selection (Super Admin & Multi-Store Users) ─────────────────
+    GoRoute(
+      path: '/store-select',
+      builder: (context, state) => const StoreSelectionPage(),
+      routes: [
+        GoRoute(
+          path: 'create-store',
+          builder: (context, state) => const CreateStorePage(),
+        ),
+      ],
+    ),
+
+    // ── Admin Shell ───────────────────────────────────────────────────────
     ShellRoute(
       navigatorKey: _adminShellNavigatorKey,
       builder: (context, state, child) {
@@ -209,23 +241,32 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => RoleBloc()),
         BlocProvider(create: (context) => SalesBloc(Supabase.instance.client)),
         BlocProvider(
-          create: (context) =>
-              AnalyticsBloc(Supabase.instance.client)
-                ..add(const LoadDashboard()),
+          create: (context) => AnalyticsBloc(Supabase.instance.client),
+          // NOTE: LoadDashboard is no longer fired here.
+          // It is fired from AdminDashboardPage once the store context is known.
         ),
+        BlocProvider(create: (context) => StoreBloc()),
       ],
-      child: MaterialApp.router(
-        localizationsDelegates: context.localizationDelegates,
-        supportedLocales: context.supportedLocales,
-        locale: context.locale,
-        title: 'Deltaware',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF203A43)),
-          useMaterial3: true,
-          fontFamily: 'Inter',
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, authState) {
+          if (authState is AuthUnauthenticated) {
+            context.read<StoreBloc>().add(ResetStore());
+            _router.go('/');
+          }
+        },
+        child: MaterialApp.router(
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
+          title: 'Deltaware',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF203A43)),
+            useMaterial3: true,
+            fontFamily: 'Inter',
+          ),
+          routerConfig: _router,
+          debugShowCheckedModeBanner: false,
         ),
-        routerConfig: _router,
-        debugShowCheckedModeBanner: false,
       ),
     );
   }

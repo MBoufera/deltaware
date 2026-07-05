@@ -30,6 +30,16 @@ class _RoleAssignmentDialogState extends State<RoleAssignmentDialog> {
     _assignedRoleIds = widget.assignedRoles.map((r) => r.id).toList();
   }
 
+  @override
+  void didUpdateWidget(covariant RoleAssignmentDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.assignedRoles.map((r) => r.id).toSet();
+    final newIds = widget.assignedRoles.map((r) => r.id).toSet();
+    if (oldIds.length != newIds.length || !oldIds.containsAll(newIds)) {
+      _assignedRoleIds = widget.assignedRoles.map((r) => r.id).toList();
+    }
+  }
+
   // ─── Redundancy Helpers ──────────────────────────────────────────────────
 
   /// Returns the union of all permission keys for a given set of role IDs.

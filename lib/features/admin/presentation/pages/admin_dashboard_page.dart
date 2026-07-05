@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_state.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -34,10 +37,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         59,
       ).toIso8601String();
 
-      final data = await _supabase.rpc(
-        'get_analytics',
-        params: {'start_date': startDate, 'end_date': endDate},
-      );
+      // Get active store_id for data isolation
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded
+          ? storeState.selectedStore?.id
+          : null;
+
+      final params = <String, dynamic>{
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+      if (storeId != null) params['p_store_id'] = storeId;
+
+      final data = await _supabase.rpc('get_analytics', params: params);
 
       if (mounted) {
         setState(() {

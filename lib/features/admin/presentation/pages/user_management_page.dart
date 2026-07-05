@@ -8,8 +8,11 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/constants.dart';
 import '../../../../features/auth/presentation/bloc/permissions_bloc.dart';
 import '../../../../features/auth/presentation/bloc/permissions_event.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_state.dart';
 import '../bloc/role/role_bloc.dart';
 import '../bloc/role/role_event.dart';
+import '../bloc/role/role_state.dart';
 import '../../../admin/data/models/role_model.dart';
 import '../widgets/role_assignment_dialog.dart';
 
@@ -38,7 +41,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
   Future<void> _fetchWorkers() async {
     setState(() => _isLoading = true);
     try {
-      final response = await _supabase.rpc('get_workers');
+      // Pass store_id to get only this store's workers
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded
+          ? storeState.selectedStore?.id
+          : null;
+
+      final params = <String, dynamic>{};
+      if (storeId != null) params['p_store_id'] = storeId;
+
+      final response = await _supabase.rpc('get_workers', params: params);
       if (mounted) {
         setState(() {
           _workers = List<dynamic>.from(response as List);
@@ -56,8 +68,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
   void _refreshPermissionsIfCurrentUser(String userId) {
     final currentUser = _supabase.auth.currentUser;
     if (currentUser != null && currentUser.id == userId) {
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
       final role = currentUser.userMetadata?['role'] ?? '';
-      context.read<PermissionsBloc>().add(RefreshPermissions(userId, role));
+      context.read<PermissionsBloc>().add(RefreshPermissions(userId, role, storeId: storeId));
     }
   }
 
@@ -85,29 +99,41 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   // ─── Role Assignment ─────────────────────────────────────────────────────
 
-  void _showRoleAssignmentDialog(BuildContext ctx, Map<String, dynamic> worker) {
+  void _showRoleAssignmentDialog(
+    BuildContext ctx,
+    Map<String, dynamic> worker,
+  ) {
     final roleBloc = ctx.read<RoleBloc>();
-    final currentState = roleBloc.state;
-    final availableRoles = currentState.roles;
-    final assignedRoles = currentState.userRoles?.userId == worker['id']
-        ? currentState.userRoles!.roles
-        : <Role>[];
+    final storeState = ctx.read<StoreBloc>().state;
+    final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
 
-    roleBloc.add(LoadUserRoles(worker['id']));
+    roleBloc.add(LoadUserRoles(worker['id'], storeId: storeId));
 
     showDialog<void>(
       context: ctx,
-      builder: (_) => RoleAssignmentDialog(
-        userName: worker['full_name'] ?? 'User',
-        availableRoles: availableRoles,
-        assignedRoles: assignedRoles,
-        onSyncRoles: (rolesToAdd, rolesToRemove) {
-          roleBloc.add(SyncUserRoles(
-            userId: worker['id'],
-            rolesToAdd: rolesToAdd,
-            rolesToRemove: rolesToRemove,
-          ));
-          _refreshPermissionsIfCurrentUser(worker['id']);
+      builder: (_) => BlocBuilder<RoleBloc, RoleState>(
+        bloc: roleBloc,
+        builder: (dialogCtx, state) {
+          final userRoles = state.userRoles;
+          final currentAssignedRoles = (userRoles != null && userRoles.userId == worker['id'])
+              ? userRoles.roles
+              : <Role>[];
+          return RoleAssignmentDialog(
+            userName: worker['full_name'] ?? 'User',
+            availableRoles: state.roles,
+            assignedRoles: currentAssignedRoles,
+            onSyncRoles: (rolesToAdd, rolesToRemove) {
+              roleBloc.add(
+                SyncUserRoles(
+                  userId: worker['id'],
+                  rolesToAdd: rolesToAdd,
+                  rolesToRemove: rolesToRemove,
+                  storeId: storeId,
+                ),
+              );
+              _refreshPermissionsIfCurrentUser(worker['id']);
+            },
+          );
         },
       ),
     ).then((_) => _waitForBlocThenRefresh(roleBloc));
@@ -151,12 +177,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 color: const Color(0xFF203A43).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.edit_outlined, color: Color(0xFF203A43), size: 20),
+              child: const Icon(
+                Icons.edit_outlined,
+                color: Color(0xFF203A43),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             const Text(
               'Edit Profile',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -169,15 +203,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
               children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: _inputDecoration('Full Name', Icons.person_outline),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                  decoration: _inputDecoration(
+                    'Full Name',
+                    Icons.person_outline,
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: emailCtrl,
                   decoration: _inputDecoration('Email', Icons.email_outlined),
-                  validator: (v) =>
-                      v == null || !v.contains('@') ? 'Enter a valid email' : null,
+                  validator: (v) => v == null || !v.contains('@')
+                      ? 'Enter a valid email'
+                      : null,
                 ),
               ],
             ),
@@ -199,10 +238,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -231,10 +267,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   },
                   child: const Text(
                     'Save Changes',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -257,11 +290,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
     if (newName == null && newEmail == null) return;
 
     try {
-      await _supabase.rpc('update_worker_profile', params: {
-        'p_user_id': userId,
-        'p_full_name': ?newName,
-        'p_email': ?newEmail,
-      });
+      await _supabase.rpc(
+        'update_worker_profile',
+        params: {
+          'p_user_id': userId,
+          'p_full_name': ?newName,
+          'p_email': ?newEmail,
+        },
+      );
       _showSuccess('Profile updated successfully');
       await _fetchWorkers();
     } catch (e) {
@@ -288,12 +324,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.key_outlined, color: Color(0xFFD97706), size: 20),
+              child: const Icon(
+                Icons.key_outlined,
+                color: Color(0xFFD97706),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             const Text(
               'Generate Password',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -306,7 +350,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
               Text(
                 'This will generate a new random password for "$userName" and immediately apply it. '
                 'The old password will no longer work.',
-                style: TextStyle(color: Colors.grey.shade700, height: 1.4, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
@@ -319,12 +367,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFD97706)),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Color(0xFFD97706),
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'You must share the new password with the user manually.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF92400E), fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF92400E),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -349,10 +405,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -374,10 +427,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   },
                   child: const Text(
                     'Generate',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -390,9 +440,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Future<void> _generatePassword(String userId, String userName) async {
     try {
-      final newPassword = await _supabase.rpc('generate_worker_password', params: {
-        'p_user_id': userId,
-      });
+      final newPassword = await _supabase.rpc(
+        'generate_worker_password',
+        params: {'p_user_id': userId},
+      );
 
       if (!mounted) return;
 
@@ -449,17 +500,32 @@ class _UserManagementPageState extends State<UserManagementPage> {
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
-                style: TextStyle(color: Colors.grey.shade600, height: 1.5, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                  fontSize: 14,
+                ),
                 children: [
-                  const TextSpan(text: 'Are you sure you want to permanently delete '),
+                  const TextSpan(
+                    text: 'Are you sure you want to permanently delete ',
+                  ),
                   TextSpan(
                     text: '"$userName"',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
-                  const TextSpan(text: '?\n\nThis will remove their account and all role assignments. '),
+                  const TextSpan(
+                    text:
+                        '?\n\nThis will remove their account and all role assignments. ',
+                  ),
                   const TextSpan(
                     text: 'This action cannot be undone.',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
                   ),
                 ],
               ),
@@ -565,7 +631,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
               prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 18),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: Colors.grey.shade200),
@@ -576,7 +645,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF203A43), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFF203A43),
+                  width: 1.5,
+                ),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -607,12 +679,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 color: const Color(0xFF203A43).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.person_add_rounded, color: Color(0xFF203A43), size: 20),
+              child: const Icon(
+                Icons.person_add_rounded,
+                color: Color(0xFF203A43),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             const Text(
               'Create New Worker',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -627,14 +707,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   buildField(
                     label: 'Full Name',
                     icon: Icons.person_outline,
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                     onSaved: (v) => fullName = v!,
                   ),
                   const SizedBox(height: 16),
                   buildField(
                     label: 'Email',
                     icon: Icons.email_outlined,
-                    validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
+                    validator: (v) =>
+                        v == null || !v.contains('@') ? 'Invalid email' : null,
                     onSaved: (v) => email = v!,
                   ),
                   const SizedBox(height: 16),
@@ -642,7 +724,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     label: 'Password',
                     icon: Icons.lock_outline,
                     obscureText: true,
-                    validator: (v) => v == null || v.length < 6 ? 'Min 6 chars' : null,
+                    validator: (v) =>
+                        v == null || v.length < 6 ? 'Min 6 chars' : null,
                     onSaved: (v) => password = v!,
                   ),
                   const SizedBox(height: 20),
@@ -655,12 +738,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF2563EB)),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF2563EB),
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Assign roles after creation using "Assign Roles".',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF1E40AF), fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF1E40AF),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -687,10 +778,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -715,10 +803,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   },
                   child: const Text(
                     'Create',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -752,26 +837,47 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
   }
 
-  Future<void> _createWorker(String fullName, String email, String password) async {
+  Future<void> _createWorker(
+    String fullName,
+    String email,
+    String password,
+  ) async {
+    final storeState = context.read<StoreBloc>().state;
+    final storeId = storeState is StoresLoaded
+        ? storeState.selectedStore?.id
+        : null;
+
     setState(() => _isLoading = true);
     try {
       final url = Uri.parse('${Constants.supabaseUrl}/auth/v1/signup');
       final request = await HttpClient().postUrl(url);
       request.headers.add('apikey', Constants.supabaseAnonKey);
       request.headers.add('Content-Type', 'application/json');
-      request.write(jsonEncode({
-        'email': email,
-        'password': password,
-        'data': {'full_name': fullName, 'role': 'worker'},
-      }));
+      request.write(
+        jsonEncode({
+          'email': email,
+          'password': password,
+          'data': {'full_name': fullName, 'role': 'worker'},
+        }),
+      );
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(body);
         if (data['user'] != null) {
+          final userId = data['user']['id'];
+          if (storeId != null) {
+            await _supabase.from('store_members').insert({
+              'store_id': storeId,
+              'user_id': userId,
+              'store_role': 'worker',
+            });
+          }
           _showSuccess('Worker created. Assign roles now.');
         } else {
-          throw Exception('User data is null — account may require email confirmation.');
+          throw Exception(
+            'User data is null — account may require email confirmation.',
+          );
         }
       } else {
         throw Exception(body);
@@ -806,10 +912,15 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final totalUsers = _workers.length;
     final adminCount = _workers.where((w) {
       final roles = w['roles'] as List? ?? [];
-      return roles.any((r) => r['name'].toString().toLowerCase().contains('admin'));
+      return roles.any(
+        (r) => r['name'].toString().toLowerCase().contains('admin'),
+      );
     }).length;
     final standardCount = totalUsers - adminCount;
-    final totalSales = _workers.fold<int>(0, (sum, w) => sum + (w['sales_this_month'] as num? ?? 0).toInt());
+    final totalSales = _workers.fold<int>(
+      0,
+      (sum, w) => sum + (w['sales_this_month'] as num? ?? 0).toInt(),
+    );
 
     final filteredWorkers = _workers.where((w) {
       final name = (w['full_name'] ?? '').toString().toLowerCase();
@@ -882,7 +993,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 4,
-                          shadowColor: const Color(0xFF203A43).withValues(alpha: 0.3),
+                          shadowColor: const Color(
+                            0xFF203A43,
+                          ).withValues(alpha: 0.3),
                         ),
                       ),
                     ),
@@ -899,7 +1012,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     value: '$totalUsers',
                     icon: Icons.people_outline_rounded,
                     iconColor: const Color(0xFF203A43),
-                    iconBgColor: const Color(0xFF203A43).withValues(alpha: 0.08),
+                    iconBgColor: const Color(
+                      0xFF203A43,
+                    ).withValues(alpha: 0.08),
                   ),
                   const SizedBox(width: 16),
                   _buildKpiCard(
@@ -948,16 +1063,26 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: 'Rechercher par nom ou email...',
-                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400, size: 20),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: Colors.grey.shade400,
+                      size: 20,
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               Expanded(
                 child: _isLoading
                     ? const Center(
@@ -966,52 +1091,63 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       )
                     : filteredWorkers.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.people_outline_rounded,
-                                    size: 64,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isNotEmpty
-                                      ? 'Aucun utilisateur ne correspond à votre recherche'
-                                      : 'users.no_users'.tr(),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.people_outline_rounded,
+                                size: 64,
+                                color: Colors.grey.shade400,
+                              ),
                             ),
-                          )
-                        : ListView.separated(
-                            padding: EdgeInsets.zero,
-                            itemCount: filteredWorkers.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 16),
-                            itemBuilder: (ctx, index) {
-                              final isCurrentUser = filteredWorkers[index]['id'] == _supabase.auth.currentUser?.id;
-                              return _UserCard(
-                                worker: filteredWorkers[index],
-                                isCurrentUser: isCurrentUser,
-                                onEditProfile: () => _showEditUserDialog(filteredWorkers[index]),
-                                onGeneratePassword: () => _showGeneratePasswordDialog(filteredWorkers[index]),
-                                onAssignRoles: () => _showRoleAssignmentDialog(ctx, filteredWorkers[index]),
-                                onDelete: () => _showDeleteUserDialog(filteredWorkers[index]),
-                              );
-                            },
-                          ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Aucun utilisateur ne correspond à votre recherche'
+                                  : 'users.no_users'.tr(),
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: filteredWorkers.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (ctx, index) {
+                          final isCurrentUser =
+                              filteredWorkers[index]['id'] ==
+                              _supabase.auth.currentUser?.id;
+                          return _UserCard(
+                            worker: filteredWorkers[index],
+                            isCurrentUser: isCurrentUser,
+                            onEditProfile: () =>
+                                _showEditUserDialog(filteredWorkers[index]),
+                            onGeneratePassword: () =>
+                                _showGeneratePasswordDialog(
+                                  filteredWorkers[index],
+                                ),
+                            onAssignRoles: () => _showRoleAssignmentDialog(
+                              ctx,
+                              filteredWorkers[index],
+                            ),
+                            onDelete: () =>
+                                _showDeleteUserDialog(filteredWorkers[index]),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -1102,8 +1238,8 @@ class _UserCardState extends State<_UserCard> {
               color: _isHovered
                   ? const Color(0xFF203A43).withValues(alpha: 0.15)
                   : widget.isCurrentUser
-                      ? const Color(0xFF203A43).withValues(alpha: 0.3)
-                      : Colors.grey.shade200,
+                  ? const Color(0xFF203A43).withValues(alpha: 0.3)
+                  : Colors.grey.shade200,
               width: widget.isCurrentUser || _isHovered ? 2.0 : 1.5,
             ),
           ),
@@ -1121,7 +1257,9 @@ class _UserCardState extends State<_UserCard> {
                         ? fullName.toString()[0].toUpperCase()
                         : '?',
                     style: TextStyle(
-                      color: widget.isCurrentUser ? Colors.white : const Color(0xFF203A43),
+                      color: widget.isCurrentUser
+                          ? Colors.white
+                          : const Color(0xFF203A43),
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -1145,7 +1283,10 @@ class _UserCardState extends State<_UserCard> {
                           if (widget.isCurrentUser) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF203A43),
                                 borderRadius: BorderRadius.circular(6),
@@ -1222,7 +1363,10 @@ class _UserCardState extends State<_UserCard> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
@@ -1265,8 +1409,13 @@ class _UserCardState extends State<_UserCard> {
                 if (email != 'superadmin@deltaware.dz') ...[
                   const SizedBox(width: 16),
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF203A43)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    icon: const Icon(
+                      Icons.more_vert_rounded,
+                      color: Color(0xFF203A43),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 6,
                     shadowColor: Colors.black.withValues(alpha: 0.08),
                     onSelected: (value) {
@@ -1282,12 +1431,32 @@ class _UserCardState extends State<_UserCard> {
                       }
                     },
                     itemBuilder: (_) => [
-                      _menuItem('edit', Icons.edit_outlined, 'Edit Profile', const Color(0xFF334155)),
-                      _menuItem('password', Icons.key_outlined, 'Generate Password', const Color(0xFFD97706)),
-                      _menuItem('roles', Icons.badge_outlined, 'Assign Roles', const Color(0xFF0F766E)),
+                      _menuItem(
+                        'edit',
+                        Icons.edit_outlined,
+                        'Edit Profile',
+                        const Color(0xFF334155),
+                      ),
+                      _menuItem(
+                        'password',
+                        Icons.key_outlined,
+                        'Generate Password',
+                        const Color(0xFFD97706),
+                      ),
+                      _menuItem(
+                        'roles',
+                        Icons.badge_outlined,
+                        'Assign Roles',
+                        const Color(0xFF0F766E),
+                      ),
                       if (!widget.isCurrentUser) ...[
                         const PopupMenuDivider(),
-                        _menuItem('delete', Icons.delete_outline_rounded, 'Delete User', const Color(0xFFB91C1C)),
+                        _menuItem(
+                          'delete',
+                          Icons.delete_outline_rounded,
+                          'Delete User',
+                          const Color(0xFFB91C1C),
+                        ),
                       ],
                     ],
                   ),
@@ -1324,10 +1493,7 @@ class _PasswordRevealDialog extends StatefulWidget {
   final String userName;
   final String password;
 
-  const _PasswordRevealDialog({
-    required this.userName,
-    required this.password,
-  });
+  const _PasswordRevealDialog({required this.userName, required this.password});
 
   @override
   State<_PasswordRevealDialog> createState() => _PasswordRevealDialogState();
@@ -1358,12 +1524,20 @@ class _PasswordRevealDialogState extends State<_PasswordRevealDialog> {
               color: const Color(0xFFDCFCE7),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF16A34A), size: 20),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              color: Color(0xFF16A34A),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           const Text(
             'Password Generated',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 18),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+              fontSize: 18,
+            ),
           ),
         ],
       ),
@@ -1375,7 +1549,11 @@ class _PasswordRevealDialogState extends State<_PasswordRevealDialog> {
           children: [
             Text(
               'New password for "${widget.userName}":',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -1403,7 +1581,11 @@ class _PasswordRevealDialogState extends State<_PasswordRevealDialog> {
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     child: _copied
-                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), key: ValueKey('copied'))
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF16A34A),
+                            key: ValueKey('copied'),
+                          )
                         : MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: IconButton(
@@ -1429,12 +1611,20 @@ class _PasswordRevealDialogState extends State<_PasswordRevealDialog> {
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFD97706)),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: Color(0xFFD97706),
+                  ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Copy and share this password with the user now. It will not be shown again.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF78350F),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -1448,7 +1638,9 @@ class _PasswordRevealDialogState extends State<_PasswordRevealDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF203A43),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Done'),
@@ -1497,8 +1689,8 @@ class _KpiCardContainerState extends State<_KpiCardContainer> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _isHovered 
-                  ? const Color(0xFF203A43).withValues(alpha: 0.15) 
+              color: _isHovered
+                  ? const Color(0xFF203A43).withValues(alpha: 0.15)
                   : Colors.grey.shade200,
               width: 1.5,
             ),
@@ -1518,11 +1710,7 @@ class _KpiCardContainerState extends State<_KpiCardContainer> {
                   color: widget.iconBgColor,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.iconColor,
-                  size: 22,
-                ),
+                child: Icon(widget.icon, color: widget.iconColor, size: 22),
               ),
               const SizedBox(width: 16),
               Expanded(

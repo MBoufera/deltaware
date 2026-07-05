@@ -22,11 +22,13 @@ class RoleService {
   }
 
   /// Get roles and permissions for a specific user
-  Future<UserRoleAssignment> getUserRoles(String userId) async {
+  Future<UserRoleAssignment> getUserRoles(String userId, {String? storeId}) async {
     try {
+      final params = <String, dynamic>{'p_user_id': userId};
+      if (storeId != null) params['p_store_id'] = storeId;
       final response = await _supabase.rpc(
         'get_user_roles_with_permissions',
-        params: {'p_user_id': userId},
+        params: params,
       );
       
       if (response == null || response.isEmpty) {
@@ -118,14 +120,16 @@ class RoleService {
   }
 
   /// Assign a role to a user
-  Future<void> assignRoleToUser(String userId, String roleId) async {
+  Future<void> assignRoleToUser(String userId, String roleId, {String? storeId}) async {
     try {
+      final params = <String, dynamic>{
+        'p_user_id': userId,
+        'p_role_id': roleId,
+      };
+      if (storeId != null) params['p_store_id'] = storeId;
       await _supabase.rpc(
         'assign_role_to_user',
-        params: {
-          'p_user_id': userId,
-          'p_role_id': roleId,
-        },
+        params: params,
       );
     } catch (e) {
       throw Exception('Failed to assign role: $e');
@@ -133,14 +137,16 @@ class RoleService {
   }
 
   /// Remove a role from a user
-  Future<void> removeRoleFromUser(String userId, String roleId) async {
+  Future<void> removeRoleFromUser(String userId, String roleId, {String? storeId}) async {
     try {
+      final params = <String, dynamic>{
+        'p_user_id': userId,
+        'p_role_id': roleId,
+      };
+      if (storeId != null) params['p_store_id'] = storeId;
       await _supabase.rpc(
         'remove_role_from_user',
-        params: {
-          'p_user_id': userId,
-          'p_role_id': roleId,
-        },
+        params: params,
       );
     } catch (e) {
       throw Exception('Failed to remove role: $e');

@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
 import 'package:deltaware/core/widgets/permission_guard.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_state.dart';
 import '../../data/services/audit_service.dart';
 
 class AuditLogsPage extends StatefulWidget {
@@ -47,10 +50,20 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   @override
   void initState() {
     super.initState();
-    _loadAuditLogs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAuditLogs();
+    });
   }
 
   void _loadAuditLogs() {
+    String? storeId;
+    try {
+      final storeState = context.read<StoreBloc>().state;
+      if (storeState is StoresLoaded) {
+        storeId = storeState.selectedStore?.id;
+      }
+    } catch (_) {}
+
     setState(() {
       _auditLogsFuture = _auditService.getAuditLogs(
         offset: _currentPage * _logsPerPage,
@@ -60,6 +73,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
         status: _selectedStatus,
         startDate: _startDate,
         endDate: _endDate,
+        storeId: storeId,
       );
     });
   }
@@ -122,6 +136,8 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
+      key: ValueKey('${label}_${value ?? 'null'}'),
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
@@ -129,7 +145,8 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -418,312 +435,431 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
 
     return PermissionGuard(
       requiredPermission: AppPermission.canViewAuditLogs.key,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F6),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Inline Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Journal d'Audit",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A2A32),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Inspectez les actions de sécurité et les modifications de ressources.',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // Filters Bar Card
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.grey.shade100),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: BlocListener<StoreBloc, StoreState>(
+        listenWhen: (prev, curr) {
+          final prevId = prev is StoresLoaded ? prev.selectedStore?.id : null;
+          final currId = curr is StoresLoaded ? curr.selectedStore?.id : null;
+          return prevId != currId;
+        },
+        listener: (context, state) {
+          setState(() {
+            _currentPage = 0;
+          });
+          _loadAuditLogs();
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF4F7F6),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Inline Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Filtres de recherche',
+                            "Journal d'Audit",
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1A2A32),
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          if (hasActiveFilters)
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: TextButton.icon(
-                                onPressed: _clearFilters,
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                label: const Text('Réinitialiser'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.red.shade700,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                  backgroundColor: Colors.red.shade50,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildFilterDropdown(
-                              label: 'Action',
-                              value: _selectedAction,
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('Toutes les actions'),
-                                ),
-                                ..._availableActions.map(
-                                  (action) => DropdownMenuItem(
-                                    value: action,
-                                    child: Text(_getActionDisplay(action)),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedAction = value;
-                                  _currentPage = 0;
-                                });
-                                _loadAuditLogs();
-                              },
+                          const SizedBox(height: 8),
+                          Text(
+                            'Inspectez les actions de sécurité et les modifications de ressources.',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildFilterDropdown(
-                              label: 'Statut',
-                              value: _selectedStatus,
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('Tous les statuts'),
-                                ),
-                                ..._availableStatuses.map(
-                                  (status) => DropdownMenuItem(
-                                    value: status,
-                                    child: Text(
-                                      status[0].toUpperCase() + status.substring(1),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedStatus = value;
-                                  _currentPage = 0;
-                                });
-                                _loadAuditLogs();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildFilterDropdown(
-                              label: 'Type de Ressource',
-                              value: _selectedResourceType,
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('Toutes les ressources'),
-                                ),
-                                ..._availableResourceTypes.map(
-                                  (type) => DropdownMenuItem(
-                                    value: type,
-                                    child: Text(
-                                      type[0].toUpperCase() + type.substring(1),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedResourceType = value;
-                                  _currentPage = 0;
-                                });
-                                _loadAuditLogs();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          _buildDatePickerButton(),
                         ],
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                // Table View
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
+                  // Filters Bar Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                       border: Border.all(color: Colors.grey.shade100),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: FutureBuilder<List<AuditLog>>(
-                        future: _auditLogsFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF203A43),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Filtres de recherche',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A2A32),
                               ),
-                            );
-                          }
-
-                          if (snapshot.hasError) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline_rounded,
-                                    size: 48,
-                                    color: Colors.red.shade300,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Erreur lors du chargement des logs: ${snapshot.error}',
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontWeight: FontWeight.w500,
+                            ),
+                            if (hasActiveFilters)
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: TextButton.icon(
+                                  onPressed: _clearFilters,
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  label: const Text('Réinitialiser'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red.shade700,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    backgroundColor: Colors.red.shade50,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
-                            );
-                          }
-
-                          final logs = snapshot.data ?? [];
-
-                          if (logs.isEmpty) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isNarrow = constraints.maxWidth < 900;
+                            if (isNarrow) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Icon(
-                                    Icons.history_toggle_off_rounded,
-                                    size: 64,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Aucun log d\'audit trouvé',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-
-                          return LayoutBuilder(
-                            builder: (context, constraints) {
-                              final tableWidth = constraints.maxWidth > 950
-                                  ? constraints.maxWidth
-                                  : 950.0;
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: SizedBox(
-                                  width: tableWidth,
-                                  child: Column(
+                                  Row(
                                     children: [
-                                      _buildTableHeader(),
                                       Expanded(
-                                        child: ListView.builder(
-                                          itemCount: logs.length,
-                                          itemBuilder: (context, index) {
-                                            final log = logs[index];
-                                            return _AuditRow(
-                                              log: log,
-                                              onTapDetails: () =>
-                                                  _showLogDetails(context, log),
-                                              getActionDisplay: _getActionDisplay,
-                                              getStatusBadge: _buildStatusBadge,
-                                              getActionBadge: _buildActionBadge,
-                                            );
+                                        child: _buildFilterDropdown(
+                                          label: 'Action',
+                                          value: _selectedAction,
+                                          items: [
+                                            const DropdownMenuItem(
+                                              value: null,
+                                              child: Text('Toutes les actions'),
+                                            ),
+                                            ..._availableActions.map(
+                                              (action) => DropdownMenuItem(
+                                                value: action,
+                                                child: Text(_getActionDisplay(action)),
+                                              ),
+                                            ),
+                                          ],
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _selectedAction = value;
+                                              _currentPage = 0;
+                                            });
+                                            _loadAuditLogs();
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: _buildFilterDropdown(
+                                          label: 'Statut',
+                                          value: _selectedStatus,
+                                          items: [
+                                            const DropdownMenuItem(
+                                              value: null,
+                                              child: Text('Tous les statuts'),
+                                            ),
+                                            ..._availableStatuses.map(
+                                              (status) => DropdownMenuItem(
+                                                value: status,
+                                                child: Text(
+                                                  status[0].toUpperCase() + status.substring(1),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _selectedStatus = value;
+                                              _currentPage = 0;
+                                            });
+                                            _loadAuditLogs();
                                           },
                                         ),
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildFilterDropdown(
+                                          label: 'Type de Ressource',
+                                          value: _selectedResourceType,
+                                          items: [
+                                            const DropdownMenuItem(
+                                              value: null,
+                                              child: Text('Toutes les ressources'),
+                                            ),
+                                            ..._availableResourceTypes.map(
+                                              (type) => DropdownMenuItem(
+                                                value: type,
+                                                child: Text(
+                                                  type[0].toUpperCase() + type.substring(1),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _selectedResourceType = value;
+                                              _currentPage = 0;
+                                            });
+                                            _loadAuditLogs();
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: _buildDatePickerButton(),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildFilterDropdown(
+                                      label: 'Action',
+                                      value: _selectedAction,
+                                      items: [
+                                        const DropdownMenuItem(
+                                          value: null,
+                                          child: Text('Toutes les actions'),
+                                        ),
+                                        ..._availableActions.map(
+                                          (action) => DropdownMenuItem(
+                                            value: action,
+                                            child: Text(_getActionDisplay(action)),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedAction = value;
+                                          _currentPage = 0;
+                                        });
+                                        _loadAuditLogs();
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildFilterDropdown(
+                                      label: 'Statut',
+                                      value: _selectedStatus,
+                                      items: [
+                                        const DropdownMenuItem(
+                                          value: null,
+                                          child: Text('Tous les statuts'),
+                                        ),
+                                        ..._availableStatuses.map(
+                                          (status) => DropdownMenuItem(
+                                            value: status,
+                                            child: Text(
+                                              status[0].toUpperCase() + status.substring(1),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedStatus = value;
+                                          _currentPage = 0;
+                                        });
+                                        _loadAuditLogs();
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildFilterDropdown(
+                                      label: 'Type de Ressource',
+                                      value: _selectedResourceType,
+                                      items: [
+                                        const DropdownMenuItem(
+                                          value: null,
+                                          child: Text('Toutes les ressources'),
+                                        ),
+                                        ..._availableResourceTypes.map(
+                                          (type) => DropdownMenuItem(
+                                            value: type,
+                                            child: Text(
+                                              type[0].toUpperCase() + type.substring(1),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedResourceType = value;
+                                          _currentPage = 0;
+                                        });
+                                        _loadAuditLogs();
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildDatePickerButton(),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Table View
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: FutureBuilder<List<AuditLog>>(
+                          future: _auditLogsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF203A43),
                                 ),
                               );
-                            },
-                          );
-                        },
+                            }
+
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 48,
+                                      color: Colors.red.shade300,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Erreur lors du chargement des logs: ${snapshot.error}',
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final logs = snapshot.data ?? [];
+
+                            if (logs.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.history_toggle_off_rounded,
+                                      size: 64,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun log d\'audit trouvé',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                final tableWidth = constraints.maxWidth > 950
+                                    ? constraints.maxWidth
+                                    : 950.0;
+                                return SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: SizedBox(
+                                    width: tableWidth,
+                                    child: Column(
+                                      children: [
+                                        _buildTableHeader(),
+                                        Expanded(
+                                          child: ListView.builder(
+                                            itemCount: logs.length,
+                                            itemBuilder: (context, index) {
+                                              final log = logs[index];
+                                              return _AuditRow(
+                                                log: log,
+                                                onTapDetails: () =>
+                                                    _showLogDetails(context, log),
+                                                getActionDisplay: _getActionDisplay,
+                                                getStatusBadge: _buildStatusBadge,
+                                                getActionBadge: _buildActionBadge,
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Pagination footer
-                _buildPagination(),
-              ],
+                  // Pagination footer
+                  _buildPagination(),
+                ],
+              ),
             ),
           ),
         ),

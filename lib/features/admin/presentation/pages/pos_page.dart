@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/sales/sales_bloc.dart';
 import '../bloc/sales/sales_event.dart';
 import '../bloc/sales/sales_state.dart';
 import '../widgets/client_selection_dialog.dart';
+import '../../../../features/store/presentation/bloc/store_bloc.dart';
+import '../../../../features/store/presentation/bloc/store_event.dart';
+import '../../../../features/store/presentation/bloc/store_state.dart';
 import 'document_viewer_page.dart';
 
 class PosPage extends StatefulWidget {
@@ -19,66 +23,212 @@ class _PosPageState extends State<PosPage> {
   @override
   void initState() {
     super.initState();
-    context.read<SalesBloc>().add(LoadProducts());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProductsForCurrentStore();
+    });
+  }
+
+  void _loadProductsForCurrentStore() {
+    final storeState = context.read<StoreBloc>().state;
+    String? storeId;
+    if (storeState is StoresLoaded) storeId = storeState.selectedStore?.id;
+
+    if (storeId != null) {
+      context.read<SalesBloc>().add(LoadProducts(storeId));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SalesBloc, SalesState>(
-      listener: (context, state) {
-        if (state is SalesError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${state.message}'), backgroundColor: Colors.red),
-          );
-        } else if (state is SalesSuccess) {
-          _showSuccessDialog(context, state);
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<StoreBloc, StoreState>(
+          listenWhen: (prev, curr) {
+            final prevId = prev is StoresLoaded ? prev.selectedStore?.id : null;
+            final currId = curr is StoresLoaded ? curr.selectedStore?.id : null;
+            return prevId != currId;
+          },
+          listener: (context, state) {
+            if (state is StoresLoaded && state.selectedStore != null) {
+              context.read<SalesBloc>().add(LoadProducts(state.selectedStore!.id));
+            }
+          },
+        ),
+        BlocListener<SalesBloc, SalesState>(
+          listener: (context, state) {
+            if (state is SalesError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${state.message}'), backgroundColor: Colors.red),
+              );
+            } else if (state is SalesSuccess) {
+              _showSuccessDialog(context, state);
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        body: BlocBuilder<SalesBloc, SalesState>(
-          builder: (context, state) {
-            if (state is SalesInitial || state is SalesLoading) {
+        body: BlocBuilder<StoreBloc, StoreState>(
+          builder: (context, storeState) {
+            if (storeState is StoreInitial || storeState is StoreLoading) {
               return const Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF203A43),
                 ),
               );
-            } else if (state is SalesUpdated) {
-              return Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      children: [
-                        _buildTopBar(state),
-                        Expanded(child: _buildProductGrid(state)),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(-5, 0),
-                          )
-                        ],
-                        border: Border(
-                          left: BorderSide(color: Colors.grey.shade200, width: 1),
+            }
+
+            if (storeState is StoreError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Failed to load store context',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        storeState.message,
+                        style: const TextStyle(color: Color(0xFF64748B)),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => context.read<StoreBloc>().add(LoadUserStores()),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A2A32),
+                          foregroundColor: Colors.white,
                         ),
                       ),
-                      child: _buildCart(state),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               );
             }
-            return const Center(child: Text('Unexpected State'));
+
+            if (storeState is StoresLoaded) {
+              if (storeState.selectedStore == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.storefront_rounded, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No Store Context Selected',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Please select a store first to manage point of sale.',
+                        style: TextStyle(color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => context.go('/store-select'),
+                        icon: const Icon(Icons.swap_horiz_rounded),
+                        label: const Text('Select Store'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A2A32),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Store is selected, now load products BLoC
+              return BlocBuilder<SalesBloc, SalesState>(
+                builder: (context, salesState) {
+                  if (salesState is SalesInitial || salesState is SalesLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF203A43),
+                      ),
+                    );
+                  } else if (salesState is SalesUpdated) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            children: [
+                              _buildTopBar(salesState),
+                              Expanded(child: _buildProductGrid(salesState)),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(-5, 0),
+                                )
+                              ],
+                              border: Border(
+                                left: BorderSide(color: Colors.grey.shade200, width: 1),
+                              ),
+                            ),
+                            child: _buildCart(salesState),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else if (salesState is SalesError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Failed to Load Products',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              salesState.message,
+                              style: const TextStyle(color: Color(0xFF64748B)),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () => context.read<SalesBloc>().add(LoadProducts(storeState.selectedStore!.id)),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1A2A32),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return const Center(child: Text('Unexpected State'));
+                },
+              );
+            }
+
+            return const Center(child: Text('Unexpected Store State'));
           },
         ),
       ),

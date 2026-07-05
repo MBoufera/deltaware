@@ -10,16 +10,19 @@ class MockSupabaseClient extends Mock implements SupabaseClient {}
 class MockGoTrueClient extends Mock implements GoTrueClient {}
 class MockSession extends Mock implements Session {}
 class MockAuthResponse extends Mock implements AuthResponse {}
+class MockUser extends Mock implements User {}
 
 void main() {
   group('AuthBloc', () {
     late AuthBloc authBloc;
     late MockSupabaseClient mockSupabaseClient;
     late MockGoTrueClient mockGoTrueClient;
+    late MockUser mockUser;
 
     setUp(() {
       mockSupabaseClient = MockSupabaseClient();
       mockGoTrueClient = MockGoTrueClient();
+      mockUser = MockUser();
       when(() => mockSupabaseClient.auth).thenReturn(mockGoTrueClient);
       
       authBloc = AuthBloc(supabase: mockSupabaseClient);
@@ -34,15 +37,32 @@ void main() {
     });
 
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, AuthAuthenticated] when AppStarted is added and session exists',
+      'emits [AuthLoading, AuthAuthenticated] when AppStarted is added and session exists as regular worker',
       build: () {
         when(() => mockGoTrueClient.currentSession).thenReturn(MockSession());
+        when(() => mockGoTrueClient.currentUser).thenReturn(mockUser);
+        when(() => mockUser.userMetadata).thenReturn({'is_super_admin': false});
         return authBloc;
       },
       act: (bloc) => bloc.add(AppStarted()),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthAuthenticated>(),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthLoading, AuthSuperAdmin] when AppStarted is added and session exists as super admin',
+      build: () {
+        when(() => mockGoTrueClient.currentSession).thenReturn(MockSession());
+        when(() => mockGoTrueClient.currentUser).thenReturn(mockUser);
+        when(() => mockUser.userMetadata).thenReturn({'is_super_admin': true});
+        return authBloc;
+      },
+      act: (bloc) => bloc.add(AppStarted()),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthSuperAdmin>(),
       ],
     );
 
@@ -66,6 +86,8 @@ void main() {
               email: 'test@test.com',
               password: 'password123',
             )).thenAnswer((_) async => MockAuthResponse());
+        when(() => mockGoTrueClient.currentUser).thenReturn(mockUser);
+        when(() => mockUser.userMetadata).thenReturn({'is_super_admin': false});
         return authBloc;
       },
       act: (bloc) => bloc.add(LoginRequested('test@test.com', 'password123')),
