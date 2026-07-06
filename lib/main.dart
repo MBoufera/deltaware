@@ -31,6 +31,7 @@ import 'features/admin/presentation/pages/document_history_page.dart';
 import 'features/admin/presentation/pages/audit_logs_page.dart';
 import 'features/store/presentation/pages/store_selection_page.dart';
 import 'features/store/presentation/pages/create_store_page.dart';
+import 'features/admin/presentation/pages/programmer_console_page.dart';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'dart:io' show Platform;
@@ -90,6 +91,7 @@ final GoRouter _router = GoRouter(
     final isGoingToLogin = loc == '/';
     final isGoingToStoreSelect =
         loc == '/store-select' || loc == '/store-select/create-store';
+    final isGoingToProgrammer = loc == '/programmer';
 
     // Not logged in — boot to login
     if (session == null && !isGoingToLogin) return '/';
@@ -97,10 +99,19 @@ final GoRouter _router = GoRouter(
     // Already logged in — redirect away from login
     if (session != null && isGoingToLogin) {
       final metadata = session.user.userMetadata ?? {};
+      final isProgrammer = metadata['is_programmer'] == true;
+      if (isProgrammer) return '/programmer';
       final isSuperAdmin = metadata['is_super_admin'] == true;
       // Super admins always start at the store selector
       if (isSuperAdmin) return '/store-select';
       return '/dashboard';
+    }
+
+    // Protect Programmer route
+    if (session != null && isGoingToProgrammer) {
+      final metadata = session.user.userMetadata ?? {};
+      final isProgrammer = metadata['is_programmer'] == true;
+      if (!isProgrammer) return '/';
     }
 
     // Prevent non-super-admins from accessing store-select directly
@@ -114,6 +125,12 @@ final GoRouter _router = GoRouter(
   routes: [
     // ── Login ────────────────────────────────────────────────────────────
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
+
+    // ── Programmer Dashboard / Console ────────────────────────────────────
+    GoRoute(
+      path: '/programmer',
+      builder: (context, state) => const ProgrammerConsolePage(),
+    ),
 
     // ── Store Selection (Super Admin & Multi-Store Users) ─────────────────
     GoRoute(

@@ -67,10 +67,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            context.go('/dashboard');
-          } else if (state is AuthSuperAdmin) {
-            context.go('/store-select');
+          if (state is AuthAuthenticated || state is AuthSuperAdmin) {
+            final user = Supabase.instance.client.auth.currentUser;
+            final metadata = user?.userMetadata ?? {};
+            if (metadata['is_programmer'] == true) {
+              context.go('/programmer');
+            } else if (state is AuthSuperAdmin) {
+              context.go('/store-select');
+            } else {
+              context.go('/dashboard');
+            }
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
