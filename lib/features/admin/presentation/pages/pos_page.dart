@@ -296,10 +296,14 @@ class _PosPageState extends State<PosPage> {
                   orElse: () => null,
                 );
                 if (matchedProduct != null) {
-                  context.read<SalesBloc>().add(AddItemToCart(matchedProduct));
                   _searchController.clear();
                   context.read<SalesBloc>().add(const SearchProducts(''));
-                  _searchFocusNode.requestFocus();
+                  if (state.saleType == 'gros') {
+                    _showQuantityDialog(context, matchedProduct, state.saleType);
+                  } else {
+                    context.read<SalesBloc>().add(AddItemToCart(matchedProduct));
+                    _searchFocusNode.requestFocus();
+                  }
                 }
               }
             },
@@ -423,7 +427,13 @@ class _PosPageState extends State<PosPage> {
           price: price,
           stock: stock,
           saleType: state.saleType,
-          onTap: () => context.read<SalesBloc>().add(AddItemToCart(p)),
+          onTap: () {
+            if (state.saleType == 'gros') {
+              _showQuantityDialog(context, p, state.saleType);
+            } else {
+              context.read<SalesBloc>().add(AddItemToCart(p));
+            }
+          },
         );
       },
     );
@@ -971,6 +981,225 @@ class _PosPageState extends State<PosPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showQuantityDialog(BuildContext context, Map<String, dynamic> product, String saleType) {
+    final contenance = product['contenance'] as int? ?? 1;
+    final qtyController = TextEditingController(text: '1');
+    final focusNode = FocusNode();
+    bool isBox = contenance > 1;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF203A43).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.shopping_basket_outlined,
+                      color: Color(0xFF203A43),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product['name_fr'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (contenance > 1)
+                          Text(
+                            'Box Capacity: $contenance pcs/bte',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Enter Quantity',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: qtyController,
+                    focusNode: focusNode,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                    autofocus: true,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
+                      ),
+                    ),
+                    onFieldSubmitted: (val) {
+                      final inputQty = int.tryParse(val) ?? 1;
+                      final totalPieces = isBox ? inputQty * contenance : inputQty;
+                      if (totalPieces > 0) {
+                        context.read<SalesBloc>().add(UpdateItemQty(product['id'], totalPieces));
+                      }
+                      Navigator.of(ctx).pop();
+                      _searchFocusNode.requestFocus();
+                    },
+                  ),
+                  if (contenance > 1) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Unit Type',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: Container(
+                              width: double.infinity,
+                              alignment: Alignment.center,
+                              child: const Text('Box (Boîte)'),
+                            ),
+                            selected: isBox,
+                            selectedColor: const Color(0xFF203A43),
+                            checkmarkColor: Colors.white,
+                            labelStyle: TextStyle(
+                              color: isBox ? Colors.white : const Color(0xFF475569),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                isBox = true;
+                              });
+                              focusNode.requestFocus();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: Container(
+                              width: double.infinity,
+                              alignment: Alignment.center,
+                              child: const Text('Piece (Pièce)'),
+                            ),
+                            selected: !isBox,
+                            selectedColor: const Color(0xFF203A43),
+                            checkmarkColor: Colors.white,
+                            labelStyle: TextStyle(
+                              color: !isBox ? Colors.white : const Color(0xFF475569),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                isBox = false;
+                              });
+                              focusNode.requestFocus();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _searchFocusNode.requestFocus();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF203A43),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    final inputQty = int.tryParse(qtyController.text) ?? 1;
+                    final totalPieces = isBox ? inputQty * contenance : inputQty;
+                    if (totalPieces > 0) {
+                      context.read<SalesBloc>().add(UpdateItemQty(product['id'], totalPieces));
+                    }
+                    Navigator.of(ctx).pop();
+                    _searchFocusNode.requestFocus();
+                  },
+                  child: const Text(
+                    'Add',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
