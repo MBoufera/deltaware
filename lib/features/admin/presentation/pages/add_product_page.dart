@@ -128,10 +128,14 @@ class _AddProductFormState extends State<AddProductForm> {
 
   Future<void> _loadCategories() async {
     try {
-      final response = await Supabase.instance.client
-          .from('categories')
-          .select('name_fr')
-          .order('name_fr');
+      final storeState = context.read<StoreBloc>().state;
+      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+
+      var query = Supabase.instance.client.from('categories').select('name_fr');
+      if (storeId != null) {
+        query = query.eq('store_id', storeId);
+      }
+      final response = await query.order('name_fr');
       
       final List<String> loaded = List<String>.from(
         (response as List).map((item) => item['name_fr'] as String),
