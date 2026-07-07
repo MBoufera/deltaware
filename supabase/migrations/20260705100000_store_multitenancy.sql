@@ -841,7 +841,7 @@ BEGIN
     FROM sales s
     JOIN profiles p ON s.worker_id = p.id
     WHERE s.created_at >= start_date 
-      AND created_at <= end_date
+      AND s.created_at <= end_date
       AND (p_store_id IS NULL OR s.store_id = p_store_id)
     GROUP BY p.id, p.full_name
     ORDER BY revenue_ht DESC

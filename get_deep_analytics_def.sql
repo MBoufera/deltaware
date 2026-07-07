@@ -52,9 +52,9 @@ BEGIN
 
       SUM(total_ht) * 0.25 as gross_profit
 
-    FROM sales
+    FROM sales s
 
-    WHERE created_at >= start_date AND created_at <= end_date
+    WHERE s.created_at >= start_date AND s.created_at <= end_date
 
     GROUP BY DATE(created_at)
 
