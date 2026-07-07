@@ -646,58 +646,21 @@ class _ProductRowState extends State<_ProductRow> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 6,
-                          runSpacing: 2,
-                          children: [
+                        Text(
+                          [
                             if (widget.product['reference'] != null &&
-                                widget.product['reference'].toString().isNotEmpty) ...[
-                              Text(
-                                'Ref: ${widget.product['reference']}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Container(
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade400,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
+                                widget.product['reference'].toString().isNotEmpty)
+                              'Ref: ${widget.product['reference']}',
                             if (widget.product['ref_code'] != null &&
-                                widget.product['ref_code'].toString().isNotEmpty) ...[
-                              Text(
-                                widget.product['ref_code'].toString(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Container(
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade400,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                            Text(
-                              'Contenance: ${widget.product['contenance'] ?? 1} pcs/bte',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                                widget.product['ref_code'].toString().isNotEmpty)
+                              'Code: ${widget.product['ref_code']}',
+                            'Contenance: ${widget.product['contenance'] ?? 1} pcs/bte',
+                          ].join(' • '),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),

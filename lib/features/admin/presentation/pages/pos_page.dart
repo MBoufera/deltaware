@@ -979,11 +979,20 @@ class _ProductPosCardState extends State<_ProductPosCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (widget.product['ref_code'] != null &&
-                          widget.product['ref_code'].toString().isNotEmpty) ...[
+                      if ((widget.product['ref_code'] != null &&
+                              widget.product['ref_code'].toString().isNotEmpty) ||
+                          (widget.product['reference'] != null &&
+                              widget.product['reference'].toString().isNotEmpty)) ...[
                         const SizedBox(height: 2),
                         Text(
-                          widget.product['ref_code'].toString(),
+                          [
+                            if (widget.product['reference'] != null &&
+                                widget.product['reference'].toString().isNotEmpty)
+                              'Ref: ${widget.product['reference']}',
+                            if (widget.product['ref_code'] != null &&
+                                widget.product['ref_code'].toString().isNotEmpty)
+                              'Code: ${widget.product['ref_code']}',
+                          ].join(' • '),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade500,
