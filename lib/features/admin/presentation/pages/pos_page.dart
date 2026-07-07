@@ -422,6 +422,7 @@ class _PosPageState extends State<PosPage> {
           product: p,
           price: price,
           stock: stock,
+          saleType: state.saleType,
           onTap: () => context.read<SalesBloc>().add(AddItemToCart(p)),
         );
       },
@@ -496,6 +497,7 @@ class _PosPageState extends State<PosPage> {
                     final p = state.products.firstWhere((p) => p['id'] == id);
                     final price = _getPriceForType(p, state.saleType);
                     final total = price * qty;
+                    final contenance = p['contenance'] as int? ?? 1;
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -536,7 +538,9 @@ class _PosPageState extends State<PosPage> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${price.toStringAsFixed(2)} DZD',
+                                  state.saleType == 'gros' && contenance > 1
+                                      ? '${price.toStringAsFixed(2)} DZD/pc • 1 bte = $contenance pcs'
+                                      : '${price.toStringAsFixed(2)} DZD',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 11,
@@ -546,48 +550,146 @@ class _PosPageState extends State<PosPage> {
                               ],
                             ),
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.all(2),
-                            child: Row(
+                          if (state.saleType == 'gros' && contenance > 1) ...[
+                            // Box controller
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.remove_rounded, size: 14),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                                    color: const Color(0xFF475569),
-                                    onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1)),
-                                  ),
+                                const Text(
+                                  'Boîte',
+                                  style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Text(
-                                    '$qty',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: Color(0xFF1E293B),
-                                    ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                ),
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.add_rounded, size: 14),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                                    color: const Color(0xFF475569),
-                                    onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1)),
+                                  padding: const EdgeInsets.all(2),
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove_rounded, size: 12),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                                        color: const Color(0xFF475569),
+                                        onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -contenance)),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Text(
+                                          '${qty ~/ contenance}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_rounded, size: 12),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                                        color: const Color(0xFF475569),
+                                        onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, contenance)),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            // Piece controller
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Pièce',
+                                  style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  padding: const EdgeInsets.all(2),
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove_rounded, size: 12),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                                        color: const Color(0xFF475569),
+                                        onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1)),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Text(
+                                          '${qty % contenance}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_rounded, size: 12),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                                        color: const Color(0xFF475569),
+                                        onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.all(2),
+                              child: Row(
+                                children: [
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.remove_rounded, size: 14),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                                      color: const Color(0xFF475569),
+                                      onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, -1)),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                                    child: Text(
+                                      '$qty',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ),
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.add_rounded, size: 14),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                                      color: const Color(0xFF475569),
+                                      onPressed: () => context.read<SalesBloc>().add(UpdateItemQty(id, 1)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(width: 12),
                           SizedBox(
                             width: 80,
@@ -597,7 +699,7 @@ class _PosPageState extends State<PosPage> {
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: Color(0xFF1E293B),
+                                  color: Color(0xFF1E293B),
                               ),
                             ),
                           ),
@@ -901,12 +1003,14 @@ class _ProductPosCard extends StatefulWidget {
   final Map<String, dynamic> product;
   final double price;
   final double stock;
+  final String saleType;
   final VoidCallback onTap;
 
   const _ProductPosCard({
     required this.product,
     required this.price,
     required this.stock,
+    required this.saleType,
     required this.onTap,
   });
 
@@ -990,7 +1094,9 @@ class _ProductPosCardState extends State<_ProductPosCard> {
                       if ((widget.product['ref_code'] != null &&
                               widget.product['ref_code'].toString().isNotEmpty) ||
                           (widget.product['reference'] != null &&
-                              widget.product['reference'].toString().isNotEmpty)) ...[
+                              widget.product['reference'].toString().isNotEmpty) ||
+                          (widget.product['contenance'] != null &&
+                              (widget.product['contenance'] as num) > 1)) ...[
                         const SizedBox(height: 2),
                         Text(
                           [
@@ -1000,6 +1106,9 @@ class _ProductPosCardState extends State<_ProductPosCard> {
                             if (widget.product['ref_code'] != null &&
                                 widget.product['ref_code'].toString().isNotEmpty)
                               'Code: ${widget.product['ref_code']}',
+                            if (widget.product['contenance'] != null &&
+                                (widget.product['contenance'] as num) > 1)
+                              '${widget.product['contenance']} pcs/bte',
                           ].join(' • '),
                           style: TextStyle(
                             fontSize: 11,
@@ -1038,16 +1147,45 @@ class _ProductPosCardState extends State<_ProductPosCard> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Price text
-                Text(
-                  '${widget.price.toStringAsFixed(2)} DZD',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF203A43),
-                    fontSize: 14,
-                    fontFamily: 'monospace',
+                // Price text (pc & bte if in gros mode)
+                if (widget.saleType == 'gros' &&
+                    widget.product['contenance'] != null &&
+                    (widget.product['contenance'] as num) > 1)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${widget.price.toStringAsFixed(2)} DZD/pc',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF203A43),
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${(widget.price * (widget.product['contenance'] as num)).toStringAsFixed(2)} DZD/bte',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.indigo.shade700,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    '${widget.price.toStringAsFixed(2)} DZD',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF203A43),
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                    ),
                   ),
-                ),
               ],
             ),
           ),

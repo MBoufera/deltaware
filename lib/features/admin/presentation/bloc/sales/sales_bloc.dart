@@ -83,7 +83,11 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
       final s = state as SalesUpdated;
       final id = event.product['id'] as String;
       final newCart = Map<String, int>.from(s.cart);
-      newCart[id] = (newCart[id] ?? 0) + 1;
+      
+      final contenance = event.product['contenance'] as int? ?? 1;
+      final delta = s.saleType == 'gros' ? contenance : 1;
+      
+      newCart[id] = (newCart[id] ?? 0) + delta;
       emit(_calculateTotals(
         products: s.products,
         filteredProducts: s.filteredProducts,
