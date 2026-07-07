@@ -149,7 +149,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'qty_gros': 0.0,
           'qty_detail': event.qtyDetail,
           'alert_threshold': event.alertThreshold,
-        });
+        }, onConflict: 'product_id');
         
         emit(ProductOperationSuccess());
       } catch (e) {
@@ -176,7 +176,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'qty_gros': event.qtyGros,
           'qty_detail': event.qtyDetail,
           'alert_threshold': event.alertThreshold,
-        });
+        }, onConflict: 'product_id');
         emit(ProductOperationSuccess());
       } catch (e) {
         emit(ProductError('Failed to update stock: $e'));
