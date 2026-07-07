@@ -67,6 +67,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'name_fr': event.nameFr,
           'name_ar': event.nameAr,
           'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
+          'reference': event.reference?.isEmpty ?? true ? null : event.reference,
           'category_id': categoryId,
           'contenance': event.contenance,
         };
@@ -127,6 +128,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'name_fr': event.nameFr,
           'name_ar': event.nameAr,
           'ref_code': event.refCode?.isEmpty ?? true ? null : event.refCode,
+          'reference': event.reference?.isEmpty ?? true ? null : event.reference,
           'category_id': categoryId,
           'contenance': event.contenance,
         }).eq('id', event.id);

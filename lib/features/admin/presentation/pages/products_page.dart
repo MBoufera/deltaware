@@ -651,6 +651,25 @@ class _ProductRowState extends State<_ProductRow> {
                           spacing: 6,
                           runSpacing: 2,
                           children: [
+                            if (widget.product['reference'] != null &&
+                                widget.product['reference'].toString().isNotEmpty) ...[
+                              Text(
+                                'Ref: ${widget.product['reference']}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Container(
+                                width: 3,
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade400,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
                             if (widget.product['ref_code'] != null &&
                                 widget.product['ref_code'].toString().isNotEmpty) ...[
                               Text(

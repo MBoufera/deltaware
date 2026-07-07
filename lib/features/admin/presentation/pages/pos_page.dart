@@ -290,7 +290,8 @@ class _PosPageState extends State<PosPage> {
                 final matchedProduct = state.products.firstWhere(
                   (p) {
                     final refCode = p['ref_code']?.toString().toLowerCase().trim();
-                    return refCode == query.toLowerCase();
+                    final reference = p['reference']?.toString().toLowerCase().trim();
+                    return refCode == query.toLowerCase() || reference == query.toLowerCase();
                   },
                   orElse: () => null,
                 );

@@ -22,6 +22,7 @@ class CreateProduct extends ProductEvent {
   final String nameFr;
   final String? nameAr;
   final String? refCode;
+  final String? reference;
   final String categoryName;
   final double purchasePrice;
   final double tva;
@@ -38,6 +39,7 @@ class CreateProduct extends ProductEvent {
     required this.nameFr,
     this.nameAr,
     this.refCode,
+    this.reference,
     required this.categoryName,
     required this.purchasePrice,
     required this.tva,
@@ -56,6 +58,7 @@ class CreateProduct extends ProductEvent {
         nameFr,
         nameAr,
         refCode,
+        reference,
         categoryName,
         purchasePrice,
         tva,
@@ -84,6 +87,7 @@ class UpdateProduct extends ProductEvent {
   final String nameFr;
   final String? nameAr;
   final String? refCode;
+  final String? reference;
   final String categoryName;
   final double purchasePrice;
   final double tva;
@@ -99,6 +103,7 @@ class UpdateProduct extends ProductEvent {
     required this.nameFr,
     this.nameAr,
     this.refCode,
+    this.reference,
     required this.categoryName,
     required this.purchasePrice,
     required this.tva,
@@ -116,6 +121,7 @@ class UpdateProduct extends ProductEvent {
         nameFr,
         nameAr,
         refCode,
+        reference,
         categoryName,
         purchasePrice,
         tva,

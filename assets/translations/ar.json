@@ -67,6 +67,8 @@
     "name_hint": "مثال: دفتر A4",
     "barcode": "الباركود",
     "barcode_hint": "مسح أو إدخال الباركود",
+    "reference": "المرجع",
+    "reference_hint": "أدخل مرجع المنتج",
     "category": "الفئة",
     "category_hint": "مثال: قرطاسية",
     "pricing_margins": "الأسعار والهوامش",

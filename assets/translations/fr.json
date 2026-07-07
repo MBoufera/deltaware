@@ -67,6 +67,8 @@
     "name_hint": "ex: Cahier A4",
     "barcode": "Code-barres",
     "barcode_hint": "Scanner ou entrer le code-barres",
+    "reference": "Référence",
+    "reference_hint": "Entrer la référence du produit",
     "category": "Catégorie",
     "category_hint": "ex: Papeterie",
     "pricing_margins": "Prix et Marges",

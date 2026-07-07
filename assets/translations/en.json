@@ -67,6 +67,8 @@
     "name_hint": "e.g., Notebook A4",
     "barcode": "Barcode",
     "barcode_hint": "Scan or enter barcode",
+    "reference": "Reference",
+    "reference_hint": "Enter product reference",
     "category": "Category",
     "category_hint": "e.g., Stationery",
     "pricing_margins": "Pricing & Margins",

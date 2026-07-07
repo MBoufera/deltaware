@@ -27,7 +27,7 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
       final data = await _supabase
           .from('products')
           .select(
-            'id, name_fr, ref_code, '
+            'id, name_fr, ref_code, reference, '
             'stock(qty_super_gros, qty_gros, qty_detail), '
             'product_pricing(prix_vente_gros_ht, prix_vente_detail_ht, tva_rate), '
             'categories(name_fr)',
@@ -71,7 +71,8 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
       final filtered = s.products.where((p) {
         final name = (p['name_fr'] ?? '').toLowerCase();
         final ref = (p['ref_code'] ?? '').toLowerCase();
-        return name.contains(query) || ref.contains(query);
+        final reference = (p['reference'] ?? '').toLowerCase();
+        return name.contains(query) || ref.contains(query) || reference.contains(query);
       }).toList();
       emit(s.copyWith(filteredProducts: filtered));
     }

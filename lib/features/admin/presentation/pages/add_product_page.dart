@@ -36,6 +36,7 @@ class _AddProductFormState extends State<AddProductForm> {
   // Controllers
   final _nameController = TextEditingController();
   final _barcodeController = TextEditingController();
+  final _referenceController = TextEditingController();
   final _categoryController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _wholesaleMarginController = TextEditingController();
@@ -62,6 +63,7 @@ class _AddProductFormState extends State<AddProductForm> {
       final p = widget.product!;
       _nameController.text = p['name_fr'] ?? '';
       _barcodeController.text = p['ref_code'] ?? '';
+      _referenceController.text = p['reference'] ?? '';
       _categoryController.text = p['categories']?['name_fr'] ?? '';
       _contenanceController.text = (p['contenance'] as num?)?.toString() ?? '1';
 
@@ -102,6 +104,7 @@ class _AddProductFormState extends State<AddProductForm> {
   void dispose() {
     _nameController.dispose();
     _barcodeController.dispose();
+    _referenceController.dispose();
     _categoryController.dispose();
     _purchasePriceController.dispose();
     _wholesaleMarginController.dispose();
@@ -192,6 +195,8 @@ class _AddProductFormState extends State<AddProductForm> {
       final alertThreshold = double.tryParse(_alertThresholdController.text) ?? 5.0;
       final contenance = int.tryParse(_contenanceController.text) ?? 1;
 
+      final reference = _referenceController.text.isEmpty ? null : _referenceController.text;
+
       if (widget.product != null) {
         context.read<ProductBloc>().add(
           UpdateProduct(
@@ -200,6 +205,7 @@ class _AddProductFormState extends State<AddProductForm> {
             refCode: _barcodeController.text.isEmpty
                 ? null
                 : _barcodeController.text,
+            reference: reference,
             categoryName: categoryName,
             purchasePrice: purchasePrice,
             tva: tva,
@@ -218,6 +224,7 @@ class _AddProductFormState extends State<AddProductForm> {
             refCode: _barcodeController.text.isEmpty
                 ? null
                 : _barcodeController.text,
+            reference: reference,
             categoryName: categoryName,
             purchasePrice: purchasePrice,
             tva: tva,
@@ -449,7 +456,6 @@ class _AddProductFormState extends State<AddProductForm> {
                               'add_product.basic_info'.tr().toUpperCase(),
                             ),
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
                                   flex: 2,
@@ -466,6 +472,15 @@ class _AddProductFormState extends State<AddProductForm> {
                                     controller: _barcodeController,
                                     label: 'add_product.barcode'.tr(),
                                     icon: Icons.qr_code_scanner,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 1,
+                                  child: _buildTextField(
+                                    controller: _referenceController,
+                                    label: 'add_product.reference'.tr(),
+                                    icon: Icons.tag,
                                   ),
                                 ),
                               ],
