@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:easy_localization/easy_localization.dart';
+import '../../../../core/constants/colors.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -97,7 +98,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     child: Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                          colors: [AppColors.slate900, AppColors.slate800, AppColors.primaryDark],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -140,7 +141,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               padding: const EdgeInsets.all(40),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                  colors: [AppColors.slate900, AppColors.slate800, AppColors.primaryDark],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -206,7 +207,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           padding: const EdgeInsets.all(32.0),
           child: Column(
             children: [
-              const Icon(Icons.blur_on, size: 60, color: Color(0xFF203A43)),
+              const Icon(Icons.blur_on, size: 60, color: AppColors.primary),
               const SizedBox(height: 24),
               _buildLoginForm(theme),
             ],
@@ -304,11 +305,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   );
                 }
               },
-              child: Text('auth.register'.tr(), style: const TextStyle(color: Color(0xFF2C5364), fontWeight: FontWeight.bold)),
+              child: Text('auth.register'.tr(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
             ),
             TextButton(
               onPressed: () {},
-              child: Text('auth.forgot_password'.tr(), style: const TextStyle(color: Color(0xFF2C5364))),
+              child: Text('auth.forgot_password'.tr(), style: const TextStyle(color: AppColors.primary)),
             ),
           ],
         ),
@@ -320,7 +321,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             if (state is AuthLoading) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C5364)),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               );
             }
@@ -331,7 +332,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 context.read<AuthBloc>().add(LoginRequested(email, password));
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C5364),
+                backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 2,
@@ -398,7 +399,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               Icon(
                 icon,
                 size: 20,
-                color: isSelected ? const Color(0xFF2C5364) : Colors.grey.shade500,
+                color: isSelected ? AppColors.primary : Colors.grey.shade500,
               ),
               const SizedBox(height: 4),
               Text(
@@ -406,7 +407,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF2C5364) : Colors.grey.shade600,
+                  color: isSelected ? AppColors.primary : Colors.grey.shade600,
                 ),
               ),
             ],

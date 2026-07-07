@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../features/store/presentation/bloc/store_bloc.dart';
 import '../../../../features/store/presentation/bloc/store_state.dart';
 
@@ -71,17 +72,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
+        backgroundColor: AppColors.background,
         body: Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF203A43),
+            color: AppColors.primary,
           ),
         ),
       );
     }
     if (_analytics == null) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
+        backgroundColor: AppColors.background,
         body: Center(
           child: Text('Failed to load analytics', style: TextStyle(color: Color(0xFF64748B))),
         ),
@@ -103,29 +104,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       title: 'Chiffre d\'Affaire HT',
       value: '${(kpi['total_revenue_ht'] as num).toStringAsFixed(2)} DZD',
       icon: Icons.payments_outlined,
-      color: const Color(0xFF203A43),
-      iconBg: const Color(0xFF203A43).withValues(alpha: 0.08),
+      color: AppColors.primary,
+      iconBg: AppColors.primary.withValues(alpha: 0.08),
     );
     final card2 = _MetricCard(
       title: 'Bénéfice Brut',
       value: '${(kpi['gross_profit'] as num).toStringAsFixed(2)} DZD',
       icon: Icons.trending_up_rounded,
-      color: const Color(0xFF10B981),
-      iconBg: const Color(0xFFECFDF5),
+      color: AppColors.success,
+      iconBg: AppColors.success.withValues(alpha: 0.08),
     );
     final card3 = _MetricCard(
       title: 'Nombre de Ventes',
       value: kpi['sales_count'].toString(),
       icon: Icons.receipt_long_rounded,
-      color: const Color(0xFF4F46E5),
-      iconBg: const Color(0xFFEEF2FF),
+      color: AppColors.secondary,
+      iconBg: AppColors.secondary.withValues(alpha: 0.08),
     );
     final card4 = _MetricCard(
       title: 'Marge %',
       value: '${(kpi['margin_percent'] as num).toStringAsFixed(1)}%',
       icon: Icons.percent_rounded,
-      color: const Color(0xFFD97706),
-      iconBg: const Color(0xFFFEF3C7),
+      color: AppColors.warning,
+      iconBg: AppColors.warning.withValues(alpha: 0.08),
     );
 
     // Build the metric cards section responsively
@@ -223,9 +224,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               Row(
                 children: [
-                  _buildLegendIndicator('Revenus', const Color(0xFF203A43)),
+                  _buildLegendIndicator('Revenus', AppColors.primary),
                   const SizedBox(width: 16),
-                  _buildLegendIndicator('Bénéfices', const Color(0xFF10B981)),
+                  _buildLegendIndicator('Bénéfices', AppColors.success),
                 ],
               ),
             ],
@@ -487,7 +488,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           LineChartBarData(
             spots: spotsRevenue,
             isCurved: true,
-            color: const Color(0xFF203A43),
+            color: AppColors.primary,
             barWidth: 4,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
@@ -495,8 +496,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF203A43).withValues(alpha: 0.15),
-                  const Color(0xFF203A43).withValues(alpha: 0.0),
+                  AppColors.primary.withValues(alpha: 0.15),
+                  AppColors.primary.withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -506,7 +507,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           LineChartBarData(
             spots: spotsProfit,
             isCurved: true,
-            color: const Color(0xFF10B981),
+            color: AppColors.success,
             barWidth: 4,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
@@ -514,8 +515,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF10B981).withValues(alpha: 0.15),
-                  const Color(0xFF10B981).withValues(alpha: 0.0),
+                  AppColors.success.withValues(alpha: 0.15),
+                  AppColors.success.withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -617,11 +618,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               const SizedBox(width: 12),
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: const Color(0xFF203A43).withValues(alpha: 0.08),
+                                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
                                 child: Text(
                                   name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
                                   style: const TextStyle(
-                                    color: Color(0xFF203A43),
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -642,7 +643,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           trailing: Text(
                             getSubtitle(item),
                             style: const TextStyle(
-                              color: Color(0xFF10B981),
+                              color: AppColors.success,
                               fontWeight: FontWeight.w900,
                               fontSize: 13,
                             ),

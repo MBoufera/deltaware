@@ -32,6 +32,7 @@ import 'features/admin/presentation/pages/audit_logs_page.dart';
 import 'features/store/presentation/pages/store_selection_page.dart';
 import 'features/store/presentation/pages/create_store_page.dart';
 import 'features/admin/presentation/pages/programmer_console_page.dart';
+import 'core/constants/colors.dart';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'dart:io' show Platform;
@@ -312,7 +313,7 @@ class MyApp extends StatelessWidget {
           locale: context.locale,
           title: 'Deltaware',
           theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF203A43)),
+            colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
             useMaterial3: true,
             fontFamily: 'Inter',
           ),

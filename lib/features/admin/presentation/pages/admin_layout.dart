@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:deltaware/core/constants/permissions_constants.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/permissions_bloc.dart';
@@ -61,12 +62,12 @@ class AdminLayout extends StatelessWidget {
         ),
       ],
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F6),
+        backgroundColor: AppColors.background,
         drawer: isDesktop ? null : const _AdminSidebar(isDrawer: true),
         appBar: isDesktop
             ? null
             : AppBar(
-                backgroundColor: const Color(0xFF1A2A32),
+                backgroundColor: AppColors.slate900,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 title: const Text('Deltaware',
@@ -83,7 +84,7 @@ class AdminLayout extends StatelessWidget {
                         bottomLeft: Radius.circular(30))
                     : BorderRadius.zero,
                 child: Container(
-                  color: const Color(0xFFF4F7F6),
+                  color: AppColors.background,
                   child: child,
                 ),
               ),
@@ -161,7 +162,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
 
     final sidebarContent = Container(
       width: 260,
-      color: const Color(0xFF1A2A32),
+      color: AppColors.slate900,
       child: Column(
         children: [
           const SizedBox(height: 48),
@@ -508,7 +509,7 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                       builder: (context, permissionsState) {
                         return CircleAvatar(
                           radius: 20,
-                          backgroundColor: permissionsState.isAdmin ? Colors.blue.shade900 : Colors.teal.shade700,
+                          backgroundColor: permissionsState.isAdmin ? AppColors.primary : AppColors.secondary,
                           child: Text(_userInitial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         );
                       }
@@ -577,7 +578,7 @@ class _SidebarItemState extends State<_SidebarItem> {
   Widget build(BuildContext context) {
     final color = widget.isActive ? Colors.white : (_isHovered ? Colors.white : Colors.white60);
     final bgColor = widget.isActive 
-        ? Colors.blue.withValues(alpha: 0.15) 
+        ? AppColors.primary.withValues(alpha: 0.15) 
         : (_isHovered ? Colors.white.withValues(alpha: 0.05) : Colors.transparent);
 
     return MouseRegion(
@@ -593,7 +594,7 @@ class _SidebarItemState extends State<_SidebarItem> {
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
             border: widget.isActive 
-                ? Border.all(color: Colors.blue.withValues(alpha: 0.3)) 
+                ? Border.all(color: AppColors.primary.withValues(alpha: 0.3)) 
                 : Border.all(color: Colors.transparent),
           ),
           child: Row(

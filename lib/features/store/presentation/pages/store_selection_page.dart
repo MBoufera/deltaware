@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../features/auth/presentation/bloc/auth_event.dart';
 import '../../../../features/auth/presentation/bloc/permissions_bloc.dart';
@@ -82,7 +83,7 @@ class _StoreSelectionPageState extends State<StoreSelectionPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: AppColors.slate900,
       body: BlocConsumer<StoreBloc, StoreState>(
         listener: (context, state) {
           if (state is StoreOperationSuccess) {
@@ -142,11 +143,11 @@ class _StoreSelectionPageState extends State<StoreSelectionPage>
           child: Container(
             width: 400,
             height: 400,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF2563EB).withValues(alpha: 0.25),
+                  AppColors.primary,
                   Colors.transparent,
                 ],
               ),
@@ -159,11 +160,11 @@ class _StoreSelectionPageState extends State<StoreSelectionPage>
           child: Container(
             width: 500,
             height: 500,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF7C3AED).withValues(alpha: 0.15),
+                  AppColors.secondary,
                   Colors.transparent,
                 ],
               ),
@@ -185,7 +186,7 @@ class _StoreSelectionPageState extends State<StoreSelectionPage>
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                colors: [AppColors.primary, AppColors.secondary],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -234,7 +235,7 @@ class _StoreSelectionPageState extends State<StoreSelectionPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFF2563EB)),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Loading your stores...',
@@ -366,11 +367,11 @@ class _StoreCardState extends State<_StoreCard> {
   Color get _roleColor {
     switch (widget.store.myRole) {
       case 'super_admin':
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case 'admin':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       default:
-        return const Color(0xFF6366F1);
+        return AppColors.primary;
     }
   }
 
@@ -397,19 +398,19 @@ class _StoreCardState extends State<_StoreCard> {
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: _hovered
-                ? const Color(0xFF1E3A5F)
-                : const Color(0xFF162032),
+                ? const Color(0xFF252D4A)
+                : AppColors.slate800,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _hovered
-                  ? const Color(0xFF2563EB).withValues(alpha: 0.6)
-                  : const Color(0xFF1E293B),
+                  ? AppColors.primary.withValues(alpha: 0.6)
+                  : AppColors.slate700,
               width: _hovered ? 1.5 : 1,
             ),
             boxShadow: _hovered
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 24,
                       spreadRadius: -4,
                     )
@@ -539,8 +540,8 @@ class _CreateStoreCardState extends State<_CreateStoreCard> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _hovered
-                  ? const Color(0xFF2563EB).withValues(alpha: 0.7)
-                  : const Color(0xFF1E293B),
+                  ? AppColors.primary.withValues(alpha: 0.7)
+                  : AppColors.slate700,
               width: 2,
             ),
           ),
@@ -554,13 +555,13 @@ class _CreateStoreCardState extends State<_CreateStoreCard> {
                   height: 52,
                   decoration: BoxDecoration(
                     color: _hovered
-                        ? const Color(0xFF2563EB).withValues(alpha: 0.15)
-                        : const Color(0xFF1E293B),
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : AppColors.slate800,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.add_rounded,
-                    color: _hovered ? const Color(0xFF60A5FA) : const Color(0xFF475569),
+                    color: _hovered ? AppColors.primary : const Color(0xFF475569),
                     size: 28,
                   ),
                 ),
@@ -568,7 +569,7 @@ class _CreateStoreCardState extends State<_CreateStoreCard> {
                 Text(
                   'Create New Store',
                   style: TextStyle(
-                    color: _hovered ? const Color(0xFF60A5FA) : const Color(0xFF64748B),
+                    color: _hovered ? AppColors.primary : const Color(0xFF64748B),
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
