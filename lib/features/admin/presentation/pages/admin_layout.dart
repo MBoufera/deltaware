@@ -370,6 +370,20 @@ class _AdminSidebarState extends State<_AdminSidebar> {
                           const SizedBox(height: 8),
                         ],
 
+                        // ── Clients ────────────────────────────────────────
+                        if (permissionsState.hasPermission(AppPermission.canManageUsers.key) || permissionsState.hasPermission(AppPermission.canViewAllSales.key)) ...[
+                          _SidebarItem(
+                            icon: Icons.people_outline,
+                            label: 'Clients',
+                            isActive: location.startsWith('/dashboard/clients'),
+                            onTap: () {
+                              if (widget.isDrawer) Navigator.pop(context);
+                              context.go('/dashboard/clients');
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+
                         // ── Suppliers ──────────────────────────────────────
                         if (permissionsState.hasPermission(
                             AppPermission.canManageClients.key)) ...[

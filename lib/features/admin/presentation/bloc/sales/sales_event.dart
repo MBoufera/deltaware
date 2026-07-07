@@ -80,7 +80,14 @@ class ToggleTimbreFiscal extends SalesEvent {
   List<Object?> get props => [isEnabled];
 }
 
-class SubmitSale extends SalesEvent {}
+class SubmitSale extends SalesEvent {
+  final double? amountPaid;
+
+  const SubmitSale({this.amountPaid});
+
+  @override
+  List<Object?> get props => [amountPaid];
+}
 
 class ResetSale extends SalesEvent {
   final String storeId;

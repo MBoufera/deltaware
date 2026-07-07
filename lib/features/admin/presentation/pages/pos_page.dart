@@ -770,6 +770,8 @@ class _PosPageState extends State<PosPage> {
                   : () {
                       if (['gros', 'bon_livraison', 'bon_commande', 'gouvernement'].contains(state.saleType) && state.selectedClient == null) {
                         _showClientDialog(state.saleType);
+                      } else if (state.saleType == 'gros' && state.selectedClient != null) {
+                        _showPaymentDialog(state);
                       } else {
                         context.read<SalesBloc>().add(SubmitSale());
                       }
@@ -794,6 +796,64 @@ class _PosPageState extends State<PosPage> {
           )
         ],
       ),
+    );
+  }
+
+  void _showPaymentDialog(SalesUpdated state) {
+    final amountController = TextEditingController(text: state.grandTotalTtc.toStringAsFixed(2));
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Confirm Wholesale Payment', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Total amount: ${state.grandTotalTtc.toStringAsFixed(2)} DZD', 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 16),
+              const Text('Amount Paid by Client:', style: TextStyle(fontSize: 14)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  suffixText: 'DZD',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF203A43), width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('Remaining debt will be added to ${state.selectedClient!['name']}\'s Fiche Tier.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF203A43),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                final amount = double.tryParse(amountController.text) ?? state.grandTotalTtc;
+                Navigator.of(ctx).pop();
+                context.read<SalesBloc>().add(SubmitSale(amountPaid: amount));
+              },
+              child: const Text('Confirm Sale', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -29,6 +29,8 @@ import 'features/admin/presentation/pages/returns_page.dart';
 import 'features/admin/presentation/pages/analytics_page.dart';
 import 'features/admin/presentation/pages/document_history_page.dart';
 import 'features/admin/presentation/pages/audit_logs_page.dart';
+import 'features/admin/presentation/pages/clients_page.dart';
+import 'features/admin/presentation/pages/client_fiche_tier_page.dart';
 import 'features/store/presentation/pages/store_selection_page.dart';
 import 'features/store/presentation/pages/create_store_page.dart';
 import 'features/admin/presentation/pages/programmer_console_page.dart';
@@ -233,6 +235,23 @@ final GoRouter _router = GoRouter(
                   },
                 ),
               ],
+            ),
+            GoRoute(
+              path: 'clients',
+              builder: (context, state) => RoutePermissionGuard(
+                route: '/dashboard/clients',
+                child: const ClientsPage(),
+              ),
+            ),
+            GoRoute(
+              path: 'client_fiche_tier',
+              builder: (context, state) {
+                final client = state.extra as Map<String, dynamic>;
+                return RoutePermissionGuard(
+                  route: '/dashboard/clients', // inherits client permission
+                  child: ClientFicheTierPage(client: client),
+                );
+              },
             ),
             GoRoute(
               path: 'users',
