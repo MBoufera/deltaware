@@ -380,14 +380,8 @@ class _PosPageState extends State<PosPage> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(24),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.82,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       itemCount: state.filteredProducts.length,
       itemBuilder: (context, index) {
         final p = state.filteredProducts[index];
@@ -890,107 +884,122 @@ class _ProductPosCardState extends State<_ProductPosCard> {
       onEnter: (_) => setState(() => _isHovered = !isOutOfStock),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: isOutOfStock ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? 1.02 : 1.0,
+      child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        curve: Curves.easeInOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            color: isOutOfStock ? Colors.grey.shade50 : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _isHovered
-                  ? const Color(0xFF203A43).withValues(alpha: 0.15)
-                  : Colors.grey.shade200,
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _isHovered ? 0.05 : 0.02),
-                blurRadius: _isHovered ? 12 : 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isOutOfStock
+              ? Colors.grey.shade50
+              : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isHovered
+                ? const Color(0xFF203A43).withValues(alpha: 0.15)
+                : Colors.grey.shade200,
+            width: 1,
           ),
-          child: InkWell(
-            onTap: isOutOfStock ? null : widget.onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: Opacity(
-              opacity: isOutOfStock ? 0.6 : 1.0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      decoration: BoxDecoration(
-                        color: isOutOfStock
-                            ? Colors.grey.shade100
-                            : const Color(0xFF203A43).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.inventory_2_outlined,
-                        size: 40,
-                        color: isOutOfStock ? Colors.grey : const Color(0xFF203A43),
-                      ),
-                    ),
+          boxShadow: [
+            if (_isHovered)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+          ],
+        ),
+        child: InkWell(
+          onTap: isOutOfStock ? null : widget.onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                // Product Icon Container
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: isOutOfStock
+                        ? Colors.grey.shade100
+                        : const Color(0xFF203A43).withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.product['name_fr'] ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Color(0xFF1E293B),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  child: Icon(
+                    Icons.inventory_2_outlined,
+                    size: 18,
+                    color: isOutOfStock ? Colors.grey : const Color(0xFF203A43),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Product Name and Ref Code
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.product['name_fr'] ?? '',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF1E293B),
                         ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isOutOfStock
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isOutOfStock
-                                  ? const Color(0xFFFCA5A5)
-                                  : const Color(0xFFA7F3D0),
-                            ),
-                          ),
-                          child: Text(
-                            isOutOfStock ? 'Rupture' : 'En stock: ${widget.stock.toInt()}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isOutOfStock
-                                  ? const Color(0xFFB91C1C)
-                                  : const Color(0xFF047857),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (widget.product['ref_code'] != null &&
+                          widget.product['ref_code'].toString().isNotEmpty) ...[
+                        const SizedBox(height: 2),
                         Text(
-                          '${widget.price.toStringAsFixed(2)} DZD',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF203A43),
-                            fontSize: 15,
+                          widget.product['ref_code'].toString(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Stock Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOutOfStock
+                        ? const Color(0xFFFEE2E2)
+                        : const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isOutOfStock
+                          ? const Color(0xFFFCA5A5)
+                          : const Color(0xFFA7F3D0),
                     ),
                   ),
-                ],
-              ),
+                  child: Text(
+                    isOutOfStock ? 'Rupture' : 'En stock: ${widget.stock.toInt()}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isOutOfStock
+                          ? const Color(0xFFB91C1C)
+                          : const Color(0xFF047857),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Price text
+                Text(
+                  '${widget.price.toStringAsFixed(2)} DZD',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF203A43),
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
             ),
           ),
         ),
