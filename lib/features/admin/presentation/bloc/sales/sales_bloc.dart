@@ -246,7 +246,7 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
         await _supabase.from('sales').update({'amount_paid': event.amountPaid}).eq('id', saleId);
       }
 
-      emit(SalesSuccess(saleId, s.grandTotalTtc));
+      emit(SalesSuccess(response as Map<String, dynamic>, s.grandTotalTtc));
     } catch (e) {
       emit(SalesError(e.toString()));
       emit(s);
