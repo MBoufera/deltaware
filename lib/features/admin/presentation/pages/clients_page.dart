@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../store/presentation/bloc/store_bloc.dart';
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({Key? key}) : super(key: key);
@@ -25,9 +27,8 @@ class _ClientsPageState extends State<ClientsPage> {
   Future<void> _loadClients() async {
     setState(() => _isLoading = true);
     try {
-      // Get current user's store
-      final storesRes = await _supabase.from('store_members').select('store_id').eq('user_id', _supabase.auth.currentUser!.id).limit(1);
-      final String? storeId = storesRes.isNotEmpty ? storesRes.first['store_id'] : null;
+      final storeBloc = context.read<StoreBloc>();
+      final String? storeId = storeBloc.currentStoreId;
 
       if (storeId != null) {
         final res = await _supabase.from('client_debts_view').select().eq('store_id', storeId).order('name');
