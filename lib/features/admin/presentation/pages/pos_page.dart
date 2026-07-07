@@ -452,7 +452,7 @@ class _PosPageState extends State<PosPage> {
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: TextButton.icon(
-                    onPressed: () => context.read<SalesBloc>().add(ResetSale()),
+                    onPressed: () => context.read<SalesBloc>().add(ResetSale(state.storeId)),
                     icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFB91C1C)),
                     label: const Text(
                       'Clear',
@@ -807,7 +807,11 @@ class _PosPageState extends State<PosPage> {
                     icon: const Icon(Icons.print_outlined, size: 16),
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      context.read<SalesBloc>().add(ResetSale());
+                      final storeState = context.read<StoreBloc>().state;
+                      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+                      if (storeId != null) {
+                        context.read<SalesBloc>().add(ResetSale(storeId));
+                      }
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (context) => DocumentViewerPage(saleId: state.response['sale_id']),
                       ));
@@ -844,7 +848,11 @@ class _PosPageState extends State<PosPage> {
                     ),
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      context.read<SalesBloc>().add(ResetSale());
+                      final storeState = context.read<StoreBloc>().state;
+                      final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+                      if (storeId != null) {
+                        context.read<SalesBloc>().add(ResetSale(storeId));
+                      }
                       _searchFocusNode.requestFocus();
                     },
                     child: const Text(

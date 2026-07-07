@@ -234,11 +234,8 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
   }
 
   void _onResetSale(ResetSale event, Emitter<SalesState> emit) {
-    if (state is SalesSuccess || state is SalesUpdated || state is SalesError) {
-      if (state is SalesUpdated) {
-        add(LoadProducts((state as SalesUpdated).storeId));
-      }
-    }
+    emit(SalesInitial());
+    add(LoadProducts(event.storeId));
   }
 
   // ─── Math Helpers ─────────────────────────────────────────────────────────
