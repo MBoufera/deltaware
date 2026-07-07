@@ -72,6 +72,7 @@
     "pricing_margins": "Prix et Marges",
     "purchase_price": "Prix d'Achat",
     "wholesale_margin": "Marge de Gros (%)",
+    "retail_margin": "Marge de Détail (%)",
     "retail_multiplier": "Multiplicateur de Détail",
     "tva": "TVA (%)",
     "calculated_prices": "Prix Calculés",

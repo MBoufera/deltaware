@@ -72,6 +72,7 @@
     "pricing_margins": "الأسعار والهوامش",
     "purchase_price": "سعر الشراء",
     "wholesale_margin": "هامش الجملة (%)",
+    "retail_margin": "هامش التجزئة (%)",
     "retail_multiplier": "مضاعف التجزئة",
     "tva": "ضريبة القيمة المضافة (%)",
     "calculated_prices": "الأسعار المحسوبة",

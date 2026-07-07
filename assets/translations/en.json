@@ -72,6 +72,7 @@
     "pricing_margins": "Pricing & Margins",
     "purchase_price": "Purchase Price",
     "wholesale_margin": "Wholesale Margin (%)",
+    "retail_margin": "Retail Margin (%)",
     "retail_multiplier": "Retail Multiplier",
     "tva": "TVA (%)",
     "calculated_prices": "Calculated Prices",

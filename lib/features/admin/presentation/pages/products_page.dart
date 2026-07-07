@@ -764,7 +764,7 @@ class _ProductRowState extends State<_ProductRow> {
             Expanded(
               flex: 2,
               child: Text(
-                '${(widget.product['product_pricing']?['prix_vente_gros_ht'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD',
+                '${((((widget.product['product_pricing']?['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0) / 5).round() * 5).toStringAsFixed(2)} DZD',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   fontFamily: 'monospace',
@@ -776,7 +776,7 @@ class _ProductRowState extends State<_ProductRow> {
             Expanded(
               flex: 2,
               child: Text(
-                '${(widget.product['product_pricing']?['prix_vente_detail_ht'] as num?)?.toStringAsFixed(2) ?? '0.00'} DZD',
+                '${((((widget.product['product_pricing']?['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0) / 5).round() * 5).toStringAsFixed(2)} DZD',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF203A43),

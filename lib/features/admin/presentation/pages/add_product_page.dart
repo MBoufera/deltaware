@@ -39,7 +39,7 @@ class _AddProductFormState extends State<AddProductForm> {
   final _categoryController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _wholesaleMarginController = TextEditingController();
-  final _retailMultiplierController = TextEditingController(text: '1.30');
+  final _retailMarginController = TextEditingController(text: '30');
   final _tvaController = TextEditingController(text: '19'); // Default 19% TVA
   final _qtyDetailController = TextEditingController(text: '0');
   final _alertThresholdController = TextEditingController(text: '5');
@@ -72,18 +72,17 @@ class _AddProductFormState extends State<AddProductForm> {
             (pricing['marge_gros_percent'] as num?)?.toString() ?? '0';
         _tvaController.text = (pricing['tva_rate'] as num?)?.toString() ?? '19';
 
-        // Convert marge detail back to retail multiplier
+        // Convert marge detail back to retail margin
         final margeDetail =
             (pricing['marge_detail_percent'] as num?)?.toDouble() ?? 30.0;
-        final retailMultiplier = 1.0 + (margeDetail / 100);
-        _retailMultiplierController.text = retailMultiplier.toStringAsFixed(2);
+        _retailMarginController.text = margeDetail.toStringAsFixed(0);
       }
     }
 
     // Add listeners to auto-calculate when values change
     _purchasePriceController.addListener(_calculatePrices);
     _wholesaleMarginController.addListener(_calculatePrices);
-    _retailMultiplierController.addListener(_calculatePrices);
+    _retailMarginController.addListener(_calculatePrices);
 
     if (widget.product != null) {
       _calculatePrices();
@@ -97,7 +96,7 @@ class _AddProductFormState extends State<AddProductForm> {
     _categoryController.dispose();
     _purchasePriceController.dispose();
     _wholesaleMarginController.dispose();
-    _retailMultiplierController.dispose();
+    _retailMarginController.dispose();
     _tvaController.dispose();
     _qtyDetailController.dispose();
     _alertThresholdController.dispose();
@@ -110,19 +109,19 @@ class _AddProductFormState extends State<AddProductForm> {
         double.tryParse(_purchasePriceController.text) ?? 0.0;
     final double marginPercent =
         double.tryParse(_wholesaleMarginController.text) ?? 0.0;
-    final double retailMultiplier =
-        double.tryParse(_retailMultiplierController.text) ?? 1.30;
+    final double retailMargin =
+        double.tryParse(_retailMarginController.text) ?? 30.0;
 
     // Wholesale = Purchase Price + (Purchase Price * Margin %)
     final double calculatedWholesale =
         purchasePrice + (purchasePrice * (marginPercent / 100));
 
-    // Retail = Wholesale Price * Retail Multiplier
-    final double calculatedRetail = calculatedWholesale * retailMultiplier;
+    // Retail = Purchase Price + (Purchase Price * Retail Margin %)
+    final double calculatedRetail = purchasePrice + (purchasePrice * (retailMargin / 100));
 
     setState(() {
-      _wholesalePrice = calculatedWholesale;
-      _retailPrice = calculatedRetail;
+      _wholesalePrice = (calculatedWholesale / 5).roundToDouble() * 5;
+      _retailPrice = (calculatedRetail / 5).roundToDouble() * 5;
     });
   }
 
@@ -171,8 +170,9 @@ class _AddProductFormState extends State<AddProductForm> {
       final tva = double.tryParse(_tvaController.text) ?? 19.0;
       final marginPercent =
           double.tryParse(_wholesaleMarginController.text) ?? 0.0;
-      final retailMultiplier =
-          double.tryParse(_retailMultiplierController.text) ?? 1.30;
+      final retailMargin =
+          double.tryParse(_retailMarginController.text) ?? 30.0;
+      final retailMultiplier = 1.0 + (retailMargin / 100);
       final categoryName = _categoryController.text.isEmpty
           ? 'products.uncategorized'.tr()
           : _categoryController.text;
@@ -591,15 +591,15 @@ class _AddProductFormState extends State<AddProductForm> {
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _retailMultiplierController,
-                                    label: 'add_product.retail_multiplier'.tr(),
-                                    icon: Icons.storefront,
-                                    isNumber: true,
-                                    suffixText: 'x',
-                                  ),
-                                ),
+                                 Expanded(
+                                   child: _buildTextField(
+                                     controller: _retailMarginController,
+                                     label: 'add_product.retail_margin'.tr(),
+                                     icon: Icons.storefront,
+                                     isNumber: true,
+                                     suffixText: '%',
+                                   ),
+                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),

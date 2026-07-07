@@ -245,9 +245,10 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
   double _getPriceForType(Map<String, dynamic> product, String saleType) {
     final pricing = product['product_pricing'];
     if (pricing == null) return 0.0;
-    return saleType == 'detail'
+    final double rawPrice = saleType == 'detail'
         ? (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0
         : (pricing['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0;
+    return (rawPrice / 5).roundToDouble() * 5;
   }
 
   double _getTvaRate(Map<String, dynamic> product) {

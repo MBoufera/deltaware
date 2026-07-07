@@ -842,11 +842,13 @@ class _PosPageState extends State<PosPage> {
     final pricing = product['product_pricing'];
     if (pricing == null) return 0.0;
 
+    double basePrice = 0.0;
     if (saleType == 'detail') {
-      return (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0;
+      basePrice = (pricing['prix_vente_detail_ht'] as num?)?.toDouble() ?? 0.0;
     } else {
-      return (pricing['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0;
+      basePrice = (pricing['prix_vente_gros_ht'] as num?)?.toDouble() ?? 0.0;
     }
+    return (basePrice / 5).roundToDouble() * 5;
   }
 
   double _getStockForType(Map<String, dynamic> product, String saleType) {
