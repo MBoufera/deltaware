@@ -141,6 +141,15 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           'marge_detail_percent': margeDetail,
           'tva_rate': event.tva,
         }).eq('product_id', event.id);
+
+        // Update stock entry
+        await _supabase.from('stock').upsert({
+          'product_id': event.id,
+          'qty_super_gros': 0.0,
+          'qty_gros': 0.0,
+          'qty_detail': event.qtyDetail,
+          'alert_threshold': event.alertThreshold,
+        });
         
         emit(ProductOperationSuccess());
       } catch (e) {

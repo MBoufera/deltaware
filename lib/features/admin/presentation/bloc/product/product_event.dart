@@ -91,6 +91,8 @@ class UpdateProduct extends ProductEvent {
   final double retailMultiplier;
   final String? storeId;
   final int contenance;
+  final double qtyDetail;
+  final double alertThreshold;
 
   const UpdateProduct({
     required this.id,
@@ -104,6 +106,8 @@ class UpdateProduct extends ProductEvent {
     required this.retailMultiplier,
     this.storeId,
     this.contenance = 1,
+    this.qtyDetail = 0.0,
+    this.alertThreshold = 5.0,
   });
 
   @override
@@ -119,6 +123,8 @@ class UpdateProduct extends ProductEvent {
         retailMultiplier,
         storeId,
         contenance,
+        qtyDetail,
+        alertThreshold,
       ];
 }
 

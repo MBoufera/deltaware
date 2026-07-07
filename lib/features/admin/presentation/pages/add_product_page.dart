@@ -63,6 +63,7 @@ class _AddProductFormState extends State<AddProductForm> {
       _nameController.text = p['name_fr'] ?? '';
       _barcodeController.text = p['ref_code'] ?? '';
       _categoryController.text = p['categories']?['name_fr'] ?? '';
+      _contenanceController.text = (p['contenance'] as num?)?.toString() ?? '1';
 
       final pricing = p['product_pricing'];
       if (pricing != null) {
@@ -76,6 +77,14 @@ class _AddProductFormState extends State<AddProductForm> {
         final margeDetail =
             (pricing['marge_detail_percent'] as num?)?.toDouble() ?? 30.0;
         _retailMarginController.text = margeDetail.toStringAsFixed(0);
+      }
+
+      final stock = p['stock'];
+      if (stock != null) {
+        _qtyDetailController.text =
+            (stock['qty_detail'] as num?)?.toString() ?? '0';
+        _alertThresholdController.text =
+            (stock['alert_threshold'] as num?)?.toString() ?? '5';
       }
     }
 
@@ -198,6 +207,8 @@ class _AddProductFormState extends State<AddProductForm> {
             retailMultiplier: retailMultiplier,
             storeId: storeId,
             contenance: contenance,
+            qtyDetail: qtyDetail,
+            alertThreshold: alertThreshold,
           ),
         );
       } else {
@@ -625,20 +636,18 @@ class _AddProductFormState extends State<AddProductForm> {
                                 ),
                               ],
                             ),
-                            if (widget.product == null) ...[
-                              const SizedBox(height: 32),
-                              const Divider(height: 1),
-                              const SizedBox(height: 32),
-                              _buildSectionHeader(
-                                'add_product.inventory'.tr().toUpperCase(),
-                              ),
-                              _buildTextField(
-                                controller: _qtyDetailController,
-                                label: 'add_product.qty_detail'.tr(),
-                                icon: Icons.shopping_bag_outlined,
-                                isNumber: true,
-                              ),
-                            ],
+                            const SizedBox(height: 32),
+                            const Divider(height: 1),
+                            const SizedBox(height: 32),
+                            _buildSectionHeader(
+                              'add_product.inventory'.tr().toUpperCase(),
+                            ),
+                            _buildTextField(
+                              controller: _qtyDetailController,
+                              label: 'add_product.qty_detail'.tr(),
+                              icon: Icons.shopping_bag_outlined,
+                              isNumber: true,
+                            ),
                           ],
                         ),
                       );
