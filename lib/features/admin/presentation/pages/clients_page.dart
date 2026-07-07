@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../store/presentation/bloc/store_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../store/presentation/bloc/store_bloc.dart';
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({Key? key}) : super(key: key);
@@ -154,10 +155,9 @@ class _ClientsPageState extends State<ClientsPage> {
                                   DataCell(
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        Navigator.pushNamed(
-                                          context, 
-                                          '/admin/client_fiche_tier', 
-                                          arguments: client,
+                                        context.push(
+                                          '/dashboard/client_fiche_tier', 
+                                          extra: client,
                                         ).then((_) => _loadClients()); // Reload after returning
                                       },
                                       icon: const Icon(Icons.receipt_long, size: 16),
