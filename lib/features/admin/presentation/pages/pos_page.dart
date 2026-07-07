@@ -19,13 +19,22 @@ class PosPage extends StatefulWidget {
 
 class _PosPageState extends State<PosPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProductsForCurrentStore();
+      _searchFocusNode.requestFocus();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   void _loadProductsForCurrentStore() {
@@ -250,7 +259,9 @@ class _PosPageState extends State<PosPage> {
           const SizedBox(height: 20),
           // Search Field
           TextField(
+            focusNode: _searchFocusNode,
             controller: _searchController,
+            autofocus: true,
             decoration: InputDecoration(
               hintText: 'Search products by name or reference...',
               hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -273,6 +284,24 @@ class _PosPageState extends State<PosPage> {
             ),
             style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
             onChanged: (query) => context.read<SalesBloc>().add(SearchProducts(query)),
+            onSubmitted: (value) {
+              final query = value.trim();
+              if (query.isNotEmpty) {
+                final matchedProduct = state.products.firstWhere(
+                  (p) {
+                    final refCode = p['ref_code']?.toString().toLowerCase().trim();
+                    return refCode == query.toLowerCase();
+                  },
+                  orElse: () => null,
+                );
+                if (matchedProduct != null) {
+                  context.read<SalesBloc>().add(AddItemToCart(matchedProduct));
+                  _searchController.clear();
+                  context.read<SalesBloc>().add(const SearchProducts(''));
+                  _searchFocusNode.requestFocus();
+                }
+              }
+            },
           ),
         ],
       ),
@@ -781,6 +810,7 @@ class _PosPageState extends State<PosPage> {
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (context) => DocumentViewerPage(saleId: state.response['sale_id']),
                       ));
+                      _searchFocusNode.requestFocus();
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF203A43),
@@ -814,6 +844,7 @@ class _PosPageState extends State<PosPage> {
                     onPressed: () {
                       Navigator.of(ctx).pop();
                       context.read<SalesBloc>().add(ResetSale());
+                      _searchFocusNode.requestFocus();
                     },
                     child: const Text(
                       'New Sale',
