@@ -61,9 +61,17 @@ class _SuppliersPageState extends State<SuppliersPage> {
   @override
   Widget build(BuildContext context) {
     return PermissionGuard(
-      requiredPermission: AppPermission.canManageClients.key, // You can make a canManageSuppliers permission later
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+      requiredPermission: AppPermission.canManageClients.key,
+      child: BlocListener<SuppliersBloc, SuppliersState>(
+        listener: (context, state) {
+          if (state is SupplierOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+          } else if (state is SuppliersError) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${state.message}'), backgroundColor: Colors.red));
+          }
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           title: const Text('Suppliers & Debts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF1E293B))),
           backgroundColor: Colors.white,
@@ -223,7 +231,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
           },
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildFilterChip(String label, String value) {

@@ -43,6 +43,10 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   final List<InventoryItem> _items = [];
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
+  
+  List<Map<String, dynamic>> _suppliers = [];
+  String? _selectedSupplierId;
+  final _referenceController = TextEditingController();
 
   // Rapid Entry Controllers & Focus Nodes
   final _quickNameController = TextEditingController();
@@ -56,7 +60,36 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   final String _geminiApiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_GEMINI_API_KEY');
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSuppliers();
+    });
+  }
+
+  Future<void> _loadSuppliers() async {
+    final storeId = context.read<StoreBloc>().currentStoreId;
+    if (storeId == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('suppliers')
+          .select('id, name')
+          .eq('store_id', storeId)
+          .eq('is_active', true)
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _suppliers = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading suppliers: $e')));
+    }
+  }
+
+  @override
   void dispose() {
+    _referenceController.dispose();
     _quickNameController.dispose();
     _quickQuantityController.dispose();
     _quickPriceController.dispose();
@@ -168,6 +201,13 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   Future<void> _saveBatch() async {
     if (_items.isEmpty) return;
+    
+    if (_selectedSupplierId == null || _referenceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a supplier and enter an invoice reference.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -192,16 +232,39 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
         categoryId = categoryResponse['id'];
       }
 
+      // Calculate Total TTC for the invoice
+      double totalTtc = 0;
       for (var item in _items) {
+        totalTtc += item.quantity * item.purchasePrice;
+      }
+
+      // 1. Create Purchase Invoice
+      final invoiceData = {
+        'supplier_id': _selectedSupplierId,
+        'invoice_number': _referenceController.text.trim(),
+        'date': DateTime.now().toIso8601String().split('T')[0],
+        'total_ht': totalTtc, // Defaulting HT = TTC for now
+        'total_ttc': totalTtc,
+        'status': 'confirmed', // Confirmed directly from Smart Batch
+        'notes': 'Created via Smart Batch Scanner',
+      };
+      if (storeId != null) invoiceData['store_id'] = storeId;
+
+      final invoiceRes = await supabase.from('purchase_invoices').insert(invoiceData).select('id').single();
+      final invoiceId = invoiceRes['id'];
+
+      // 2. Create Products and Invoice Items
+      for (var item in _items) {
+        // Create Product
         final insertProductData = <String, dynamic>{
           'name_fr': item.name,
           'category_id': categoryId,
         };
         if (storeId != null) insertProductData['store_id'] = storeId;
         final productResponse = await supabase.from('products').insert(insertProductData).select('id').single();
-        
         final productId = productResponse['id'];
         
+        // Setup Pricing
         await supabase.from('product_pricing').insert({
           'product_id': productId,
           'prix_achat_super_gros': item.purchasePrice,
@@ -210,9 +273,15 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
           'tva_rate': item.tvaPercentage,
         });
         
-        await supabase.from('stock').insert({
+        // Create Purchase Invoice Item (Triggers Stock Update automatically!)
+        await supabase.from('purchase_invoice_items').insert({
+          'invoice_id': invoiceId,
           'product_id': productId,
-          'qty_detail': item.quantity,
+          'quantity': item.quantity,
+          'unit_price_ht': item.purchasePrice,
+          'unit_price_ttc': item.purchasePrice,
+          'total_ht': item.quantity * item.purchasePrice,
+          'total_ttc': item.quantity * item.purchasePrice,
         });
       }
 
@@ -223,7 +292,11 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
             backgroundColor: Colors.green,
           ),
         );
-        setState(() => _items.clear());
+        setState(() {
+          _items.clear();
+          _referenceController.clear();
+          // Leave supplier selected
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -286,6 +359,47 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
               Text(
                 'smart_batch.subtitle'.tr(),
                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 24),
+              
+              // Purchase Invoice Header (Supplier & Reference)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedSupplierId,
+                        decoration: const InputDecoration(
+                          labelText: 'Supplier *',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _suppliers.map((s) {
+                          return DropdownMenuItem<String>(
+                            value: s['id'],
+                            child: Text(s['name']),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _selectedSupplierId = v),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _referenceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Invoice Reference *',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -577,12 +691,26 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Total Items: ${_items.length}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Total Items: ${_items.length}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Grand Total: ${_items.fold(0.0, (sum, item) => sum + (item.quantity * item.purchasePrice)).toStringAsFixed(2)} DZD',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF203A43),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(width: 24),
                               ElevatedButton.icon(

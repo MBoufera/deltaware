@@ -32,61 +32,59 @@ class SuppliersBloc extends Bloc<SuppliersEvent, SuppliersState> {
   }
 
   Future<void> _onAddSupplier(AddSupplier event, Emitter<SuppliersState> emit) async {
-    if (state is SuppliersLoaded) {
-      final currentState = state as SuppliersLoaded;
-      try {
-        await _supabase.from('suppliers').insert(event.data);
-        add(LoadSuppliers(currentState.storeId));
-      } catch (e) {
-        emit(SuppliersError(e.toString()));
-        add(LoadSuppliers(currentState.storeId)); // Re-load to clear error state eventually
-      }
+    final storeId = event.data['store_id'] as String;
+    emit(SuppliersLoading());
+    try {
+      await _supabase.from('suppliers').insert(event.data);
+      emit(const SupplierOperationSuccess('Supplier created successfully'));
+      add(LoadSuppliers(storeId));
+    } catch (e) {
+      emit(SuppliersError(e.toString()));
+      // Removed automatic reload so the error is visible
     }
   }
 
   Future<void> _onUpdateSupplier(UpdateSupplier event, Emitter<SuppliersState> emit) async {
-    if (state is SuppliersLoaded) {
-      final currentState = state as SuppliersLoaded;
-      try {
-        await _supabase.from('suppliers').update(event.data).eq('id', event.id);
-        add(LoadSuppliers(currentState.storeId));
-      } catch (e) {
-        emit(SuppliersError(e.toString()));
-        add(LoadSuppliers(currentState.storeId));
-      }
+    final storeId = event.data['store_id'] as String;
+    emit(SuppliersLoading());
+    try {
+      await _supabase.from('suppliers').update(event.data).eq('id', event.id);
+      emit(const SupplierOperationSuccess('Supplier updated successfully'));
+      add(LoadSuppliers(storeId));
+    } catch (e) {
+      emit(SuppliersError(e.toString()));
+      add(LoadSuppliers(storeId));
     }
   }
 
   Future<void> _onToggleSupplierStatus(ToggleSupplierStatus event, Emitter<SuppliersState> emit) async {
-    if (state is SuppliersLoaded) {
-      final currentState = state as SuppliersLoaded;
-      try {
-        await _supabase.from('suppliers').update({'is_active': event.isActive}).eq('id', event.id);
-        add(LoadSuppliers(currentState.storeId));
-      } catch (e) {
-        emit(SuppliersError(e.toString()));
-        add(LoadSuppliers(currentState.storeId));
-      }
+    final s = state;
+    final storeId = (s is SuppliersLoaded) ? s.storeId : null;
+    emit(SuppliersLoading());
+    try {
+      await _supabase.from('suppliers').update({'is_active': event.isActive}).eq('id', event.id);
+      add(LoadSuppliers(storeId));
+    } catch (e) {
+      emit(SuppliersError(e.toString()));
+      add(LoadSuppliers(storeId));
     }
   }
 
   Future<void> _onAddSupplierPayment(AddSupplierPayment event, Emitter<SuppliersState> emit) async {
-    if (state is SuppliersLoaded) {
-      final currentState = state as SuppliersLoaded;
-      try {
-        await _supabase.from('supplier_payments').insert({
-          'supplier_id': event.supplierId,
-          'store_id': event.storeId,
-          'amount': event.amount,
-          'payment_method': event.paymentMethod ?? 'cash',
-          'reference': event.reference,
-          'notes': 'Manual Payment Entry',
-        });
-        add(LoadSuppliers(currentState.storeId));
-      } catch (e) {
-        emit(SuppliersError(e.toString()));
-        add(LoadSuppliers(currentState.storeId));
-      }
+    emit(SuppliersLoading());
+    try {
+      await _supabase.from('supplier_payments').insert({
+        'supplier_id': event.supplierId,
+        'store_id': event.storeId,
+        'amount': event.amount,
+        'payment_method': event.paymentMethod ?? 'cash',
+        'reference': event.reference,
+        'notes': 'Manual Payment Entry',
+      });
+      emit(const SupplierOperationSuccess('Payment added successfully'));
+      add(LoadSuppliers(event.storeId));
+    } catch (e) {
+      emit(SuppliersError(e.toString()));
     }
   }
 
