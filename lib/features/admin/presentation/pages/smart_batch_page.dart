@@ -13,6 +13,7 @@ import '../../../store/presentation/bloc/store_state.dart';
 // Represents a row in the data table
 class InventoryItem {
   String name;
+  String reference;
   int quantity;
   double purchasePrice;
   double marginPercentage;
@@ -20,6 +21,7 @@ class InventoryItem {
 
   InventoryItem({
     required this.name,
+    this.reference = '',
     required this.quantity,
     required this.purchasePrice,
     this.marginPercentage = 20.0,
@@ -47,12 +49,15 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   List<Map<String, dynamic>> _suppliers = [];
   String? _selectedSupplierId;
   final _referenceController = TextEditingController();
+  final _paymentController = TextEditingController();
 
   // Rapid Entry Controllers & Focus Nodes
   final _quickNameController = TextEditingController();
+  final _quickReferenceController = TextEditingController();
   final _quickQuantityController = TextEditingController(text: '1');
   final _quickPriceController = TextEditingController();
   final _nameFocusNode = FocusNode();
+  final _referenceFocusNode = FocusNode();
   final _quantityFocusNode = FocusNode();
   final _priceFocusNode = FocusNode();
 
@@ -62,6 +67,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   @override
   void initState() {
     super.initState();
+    _referenceController.text = 'FAC-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSuppliers();
     });
@@ -90,10 +96,13 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   @override
   void dispose() {
     _referenceController.dispose();
+    _paymentController.dispose();
     _quickNameController.dispose();
+    _quickReferenceController.dispose();
     _quickQuantityController.dispose();
     _quickPriceController.dispose();
     _nameFocusNode.dispose();
+    _referenceFocusNode.dispose();
     _quantityFocusNode.dispose();
     _priceFocusNode.dispose();
     super.dispose();
@@ -179,6 +188,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   void _addRapidItem() {
     final name = _quickNameController.text.trim();
+    final reference = _quickReferenceController.text.trim();
     final quantity = int.tryParse(_quickQuantityController.text) ?? 1;
     final price = double.tryParse(_quickPriceController.text) ?? 0.0;
 
@@ -186,12 +196,14 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
       setState(() {
         _items.insert(0, InventoryItem(
           name: name,
+          reference: reference,
           quantity: quantity,
           purchasePrice: price,
         ));
       });
       // Clear inputs except quantity
       _quickNameController.clear();
+      _quickReferenceController.clear();
       _quickPriceController.clear();
       _quickQuantityController.text = '1';
       // Snap focus back to name field for next scan/type
@@ -242,7 +254,6 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
       final invoiceData = {
         'supplier_id': _selectedSupplierId,
         'invoice_number': _referenceController.text.trim(),
-        'date': DateTime.now().toIso8601String().split('T')[0],
         'total_ht': totalTtc, // Defaulting HT = TTC for now
         'total_ttc': totalTtc,
         'status': 'confirmed', // Confirmed directly from Smart Batch
@@ -258,6 +269,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
         // Create Product
         final insertProductData = <String, dynamic>{
           'name_fr': item.name,
+          'reference': item.reference.isNotEmpty ? item.reference : null,
           'category_id': categoryId,
         };
         if (storeId != null) insertProductData['store_id'] = storeId;
@@ -285,6 +297,18 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
         });
       }
 
+      // 3. Register Initial Payment (Optional)
+      final paymentAmount = double.tryParse(_paymentController.text);
+      if (paymentAmount != null && paymentAmount > 0) {
+        await supabase.from('supplier_payments').insert({
+          'supplier_id': _selectedSupplierId,
+          'store_id': storeId,
+          'amount': paymentAmount,
+          'payment_method': 'cash',
+          'reference': 'Payment for invoice ${_referenceController.text.trim()}',
+        });
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -295,6 +319,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
         setState(() {
           _items.clear();
           _referenceController.clear();
+          _paymentController.clear();
           // Leave supplier selected
         });
       }
@@ -373,6 +398,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                 child: Row(
                   children: [
                     Expanded(
+                      flex: 2,
                       child: DropdownButtonFormField<String>(
                         value: _selectedSupplierId,
                         decoration: const InputDecoration(
@@ -390,11 +416,25 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
+                      flex: 2,
                       child: TextField(
                         controller: _referenceController,
                         decoration: const InputDecoration(
                           labelText: 'Invoice Reference *',
                           border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _paymentController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Payment (Opt)',
+                          border: OutlineInputBorder(),
+                          suffixText: 'DZD',
                         ),
                       ),
                     ),
@@ -417,13 +457,27 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 4,
+                      flex: 3,
                       child: TextField(
                         controller: _quickNameController,
                         focusNode: _nameFocusNode,
                         decoration: InputDecoration(
                           hintText: 'smart_batch.item_name'.tr(),
-                          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.blue.shade400, size: 20),
+                          prefixIcon: Icon(Icons.shopping_bag, color: Colors.blue.shade400, size: 20),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => FocusScope.of(context).requestFocus(_referenceFocusNode),
+                      ),
+                    ),
+                    Container(width: 1, height: 30, color: Colors.grey.shade200),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _quickReferenceController,
+                        focusNode: _referenceFocusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Reference / Barcode',
+                          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.grey.shade400, size: 20),
                           border: InputBorder.none,
                         ),
                         onSubmitted: (_) => FocusScope.of(context).requestFocus(_quantityFocusNode),
@@ -532,13 +586,19 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                                       (states) => Colors.grey.shade50,
                                     ),
                                 columns: [
-                                  DataColumn(
-                                    label: Text(
-                                      'smart_batch.col_name'.tr(),
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    DataColumn(
+                                      label: Text(
+                                        'smart_batch.col_name'.tr(),
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
                                     ),
-                                  ),
-                                  DataColumn(
+                                    const DataColumn(
+                                      label: Text(
+                                        'Reference',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    DataColumn(
                                     label: Text(
                                       'smart_batch.col_qty'.tr(),
                                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -591,6 +651,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                                   return DataRow(
                                     cells: [
                                       DataCell(Text(item.name)),
+                                      DataCell(Text(item.reference.isEmpty ? '-' : item.reference, style: TextStyle(color: Colors.grey.shade600))),
                                       DataCell(Text(item.quantity.toString())),
                                       DataCell(
                                         Text(
