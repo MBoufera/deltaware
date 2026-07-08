@@ -12,6 +12,7 @@ class SuppliersBloc extends Bloc<SuppliersEvent, SuppliersState> {
     on<UpdateSupplier>(_onUpdateSupplier);
     on<ToggleSupplierStatus>(_onToggleSupplierStatus);
     on<AddSupplierPayment>(_onAddSupplierPayment);
+    on<CreatePurchaseInvoice>(_onCreatePurchaseInvoice);
   }
 
   Future<void> _onLoadSuppliers(LoadSuppliers event, Emitter<SuppliersState> emit) async {
@@ -86,6 +87,45 @@ class SuppliersBloc extends Bloc<SuppliersEvent, SuppliersState> {
         emit(SuppliersError(e.toString()));
         add(LoadSuppliers(currentState.storeId));
       }
+    }
+  }
+
+  Future<void> _onCreatePurchaseInvoice(CreatePurchaseInvoice event, Emitter<SuppliersState> emit) async {
+    final s = state;
+    final storeId = (s is SuppliersLoaded) ? s.storeId : event.storeId;
+    
+    emit(SuppliersLoading());
+    try {
+      // 1. Insert Invoice
+      final invoiceData = Map<String, dynamic>.from(event.invoiceData);
+      // Ensure store_id is set
+      invoiceData['store_id'] = event.storeId;
+      
+      final invoiceResult = await _supabase
+          .from('purchase_invoices')
+          .insert(invoiceData)
+          .select()
+          .single();
+          
+      final invoiceId = invoiceResult['id'];
+      
+      // 2. Insert Items
+      final items = event.items.map((item) {
+        return {
+          ...item,
+          'invoice_id': invoiceId,
+        };
+      }).toList();
+      
+      if (items.isNotEmpty) {
+        await _supabase.from('purchase_invoice_items').insert(items);
+      }
+      
+      emit(const SupplierOperationSuccess('Purchase invoice created successfully'));
+      add(LoadSuppliers(storeId));
+    } catch (e) {
+      emit(SuppliersError(e.toString()));
+      add(LoadSuppliers(storeId));
     }
   }
 }
