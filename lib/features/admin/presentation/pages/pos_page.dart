@@ -799,8 +799,30 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  void _showPaymentDialog(SalesUpdated state) {
-    final amountController = TextEditingController(text: state.grandTotalTtc.toStringAsFixed(2));
+  Future<void> _showPaymentDialog(SalesUpdated state) async {
+    double currentDebt = 0.0;
+    try {
+      final res = await Supabase.instance.client
+          .from('client_debts_view')
+          .select('total_debt')
+          .eq('id', state.selectedClient!['id'])
+          .maybeSingle();
+      if (res != null) {
+        currentDebt = double.tryParse(res['total_debt'].toString()) ?? 0.0;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!mounted) return;
+
+    double defaultPayment = state.grandTotalTtc;
+    if (currentDebt < 0) {
+      defaultPayment = state.grandTotalTtc + currentDebt;
+      if (defaultPayment < 0) defaultPayment = 0;
+    }
+
+    final amountController = TextEditingController(text: defaultPayment.toStringAsFixed(2));
 
     showDialog(
       context: context,
@@ -814,6 +836,29 @@ class _PosPageState extends State<PosPage> {
             children: [
               Text('Total amount: ${state.grandTotalTtc.toStringAsFixed(2)} DZD', 
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              if (currentDebt < 0) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.account_balance_wallet, color: Colors.green, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Client has a credit of ${(-currentDebt).toStringAsFixed(2)} DZD. Amount to pay has been adjusted automatically.',
+                          style: TextStyle(color: Colors.green.shade800, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               const Text('Amount Paid by Client:', style: TextStyle(fontSize: 14)),
               const SizedBox(height: 8),
