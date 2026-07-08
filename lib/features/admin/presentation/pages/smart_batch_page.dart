@@ -13,6 +13,7 @@ import '../../../store/presentation/bloc/store_state.dart';
 // Represents a row in the data table
 class InventoryItem {
   String name;
+  String reference;
   int quantity;
   double purchasePrice;
   double marginPercentage;
@@ -20,6 +21,7 @@ class InventoryItem {
 
   InventoryItem({
     required this.name,
+    this.reference = '',
     required this.quantity,
     required this.purchasePrice,
     this.marginPercentage = 20.0,
@@ -43,12 +45,19 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   final List<InventoryItem> _items = [];
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
+  
+  List<Map<String, dynamic>> _suppliers = [];
+  String? _selectedSupplierId;
+  final _referenceController = TextEditingController();
+  final _paymentController = TextEditingController();
 
   // Rapid Entry Controllers & Focus Nodes
   final _quickNameController = TextEditingController();
+  final _quickReferenceController = TextEditingController();
   final _quickQuantityController = TextEditingController(text: '1');
   final _quickPriceController = TextEditingController();
   final _nameFocusNode = FocusNode();
+  final _referenceFocusNode = FocusNode();
   final _quantityFocusNode = FocusNode();
   final _priceFocusNode = FocusNode();
 
@@ -56,11 +65,44 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
   final String _geminiApiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_GEMINI_API_KEY');
 
   @override
+  void initState() {
+    super.initState();
+    _referenceController.text = 'FAC-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSuppliers();
+    });
+  }
+
+  Future<void> _loadSuppliers() async {
+    final storeId = context.read<StoreBloc>().currentStoreId;
+    if (storeId == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('suppliers')
+          .select('id, name')
+          .eq('store_id', storeId)
+          .eq('is_active', true)
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _suppliers = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading suppliers: $e')));
+    }
+  }
+
+  @override
   void dispose() {
+    _referenceController.dispose();
+    _paymentController.dispose();
     _quickNameController.dispose();
+    _quickReferenceController.dispose();
     _quickQuantityController.dispose();
     _quickPriceController.dispose();
     _nameFocusNode.dispose();
+    _referenceFocusNode.dispose();
     _quantityFocusNode.dispose();
     _priceFocusNode.dispose();
     super.dispose();
@@ -146,6 +188,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   void _addRapidItem() {
     final name = _quickNameController.text.trim();
+    final reference = _quickReferenceController.text.trim();
     final quantity = int.tryParse(_quickQuantityController.text) ?? 1;
     final price = double.tryParse(_quickPriceController.text) ?? 0.0;
 
@@ -153,12 +196,14 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
       setState(() {
         _items.insert(0, InventoryItem(
           name: name,
+          reference: reference,
           quantity: quantity,
           purchasePrice: price,
         ));
       });
       // Clear inputs except quantity
       _quickNameController.clear();
+      _quickReferenceController.clear();
       _quickPriceController.clear();
       _quickQuantityController.text = '1';
       // Snap focus back to name field for next scan/type
@@ -168,6 +213,13 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
 
   Future<void> _saveBatch() async {
     if (_items.isEmpty) return;
+    
+    if (_selectedSupplierId == null || _referenceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a supplier and enter an invoice reference.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -192,16 +244,39 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
         categoryId = categoryResponse['id'];
       }
 
+      // Calculate Total TTC for the invoice
+      double totalTtc = 0;
       for (var item in _items) {
+        totalTtc += item.quantity * item.purchasePrice;
+      }
+
+      // 1. Create Purchase Invoice
+      final invoiceData = {
+        'supplier_id': _selectedSupplierId,
+        'invoice_number': _referenceController.text.trim(),
+        'total_ht': totalTtc, // Defaulting HT = TTC for now
+        'total_ttc': totalTtc,
+        'status': 'confirmed', // Confirmed directly from Smart Batch
+        'notes': 'Created via Smart Batch Scanner',
+      };
+      if (storeId != null) invoiceData['store_id'] = storeId;
+
+      final invoiceRes = await supabase.from('purchase_invoices').insert(invoiceData).select('id').single();
+      final invoiceId = invoiceRes['id'];
+
+      // 2. Create Products and Invoice Items
+      for (var item in _items) {
+        // Create Product
         final insertProductData = <String, dynamic>{
           'name_fr': item.name,
+          'reference': item.reference.isNotEmpty ? item.reference : null,
           'category_id': categoryId,
         };
         if (storeId != null) insertProductData['store_id'] = storeId;
         final productResponse = await supabase.from('products').insert(insertProductData).select('id').single();
-        
         final productId = productResponse['id'];
         
+        // Setup Pricing
         await supabase.from('product_pricing').insert({
           'product_id': productId,
           'prix_achat_super_gros': item.purchasePrice,
@@ -210,9 +285,27 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
           'tva_rate': item.tvaPercentage,
         });
         
-        await supabase.from('stock').insert({
+        // Create Purchase Invoice Item (Triggers Stock Update automatically!)
+        await supabase.from('purchase_invoice_items').insert({
+          'invoice_id': invoiceId,
           'product_id': productId,
-          'qty_detail': item.quantity,
+          'quantity': item.quantity,
+          'unit_price_ht': item.purchasePrice,
+          'unit_price_ttc': item.purchasePrice,
+          'total_ht': item.quantity * item.purchasePrice,
+          'total_ttc': item.quantity * item.purchasePrice,
+        });
+      }
+
+      // 3. Register Initial Payment (Optional)
+      final paymentAmount = double.tryParse(_paymentController.text);
+      if (paymentAmount != null && paymentAmount > 0) {
+        await supabase.from('supplier_payments').insert({
+          'supplier_id': _selectedSupplierId,
+          'store_id': storeId,
+          'amount': paymentAmount,
+          'payment_method': 'cash',
+          'reference': 'Payment for invoice ${_referenceController.text.trim()}',
         });
       }
 
@@ -223,7 +316,12 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
             backgroundColor: Colors.green,
           ),
         );
-        setState(() => _items.clear());
+        setState(() {
+          _items.clear();
+          _referenceController.clear();
+          _paymentController.clear();
+          // Leave supplier selected
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -288,6 +386,62 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 24),
+              
+              // Purchase Invoice Header (Supplier & Reference)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedSupplierId,
+                        decoration: const InputDecoration(
+                          labelText: 'Supplier *',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _suppliers.map((s) {
+                          return DropdownMenuItem<String>(
+                            value: s['id'],
+                            child: Text(s['name']),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _selectedSupplierId = v),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _referenceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Invoice Reference *',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _paymentController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Payment (Opt)',
+                          border: OutlineInputBorder(),
+                          suffixText: 'DZD',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // Rapid Entry Quick Add Bar
               Container(
@@ -303,13 +457,27 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 4,
+                      flex: 3,
                       child: TextField(
                         controller: _quickNameController,
                         focusNode: _nameFocusNode,
                         decoration: InputDecoration(
                           hintText: 'smart_batch.item_name'.tr(),
-                          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.blue.shade400, size: 20),
+                          prefixIcon: Icon(Icons.shopping_bag, color: Colors.blue.shade400, size: 20),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => FocusScope.of(context).requestFocus(_referenceFocusNode),
+                      ),
+                    ),
+                    Container(width: 1, height: 30, color: Colors.grey.shade200),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _quickReferenceController,
+                        focusNode: _referenceFocusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Reference / Barcode',
+                          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.grey.shade400, size: 20),
                           border: InputBorder.none,
                         ),
                         onSubmitted: (_) => FocusScope.of(context).requestFocus(_quantityFocusNode),
@@ -418,13 +586,19 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                                       (states) => Colors.grey.shade50,
                                     ),
                                 columns: [
-                                  DataColumn(
-                                    label: Text(
-                                      'smart_batch.col_name'.tr(),
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    DataColumn(
+                                      label: Text(
+                                        'smart_batch.col_name'.tr(),
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
                                     ),
-                                  ),
-                                  DataColumn(
+                                    const DataColumn(
+                                      label: Text(
+                                        'Reference',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    DataColumn(
                                     label: Text(
                                       'smart_batch.col_qty'.tr(),
                                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -477,6 +651,7 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                                   return DataRow(
                                     cells: [
                                       DataCell(Text(item.name)),
+                                      DataCell(Text(item.reference.isEmpty ? '-' : item.reference, style: TextStyle(color: Colors.grey.shade600))),
                                       DataCell(Text(item.quantity.toString())),
                                       DataCell(
                                         Text(
@@ -577,12 +752,26 @@ class _SmartBatchPageState extends State<SmartBatchPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Total Items: ${_items.length}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Total Items: ${_items.length}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Grand Total: ${_items.fold(0.0, (sum, item) => sum + (item.quantity * item.purchasePrice)).toStringAsFixed(2)} DZD',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF203A43),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(width: 24),
                               ElevatedButton.icon(

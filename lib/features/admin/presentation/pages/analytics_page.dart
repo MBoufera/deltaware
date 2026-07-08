@@ -26,9 +26,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   void _loadAnalyticsForCurrentStore() {
-    final storeState = context.read<StoreBloc>().state;
-    String? storeId;
-    if (storeState is StoresLoaded) storeId = storeState.selectedStore?.id;
+    final storeId = context.read<StoreBloc>().currentStoreId;
     context.read<AnalyticsBloc>().add(LoadDashboard(storeId: storeId));
   }
 
@@ -43,7 +41,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           return prevId != currId;
         },
         listener: (context, state) {
-          final storeId = state is StoresLoaded ? state.selectedStore?.id : null;
+          final storeId = context.read<StoreBloc>().currentStoreId;
           context.read<AnalyticsBloc>().add(LoadDashboard(storeId: storeId));
         },
         child: Scaffold(
@@ -202,8 +200,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   },
                 );
                 if (range != null && context.mounted) {
-                  final storeState = context.read<StoreBloc>().state;
-                  final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+                  final storeId = context.read<StoreBloc>().currentStoreId;
                   context.read<AnalyticsBloc>().add(
                     ChangeDateRange(from: range.start, to: range.end, storeId: storeId),
                   );
@@ -226,8 +223,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
-          final storeState = context.read<StoreBloc>().state;
-          final storeId = storeState is StoresLoaded ? storeState.selectedStore?.id : null;
+          final storeId = context.read<StoreBloc>().currentStoreId;
           context.read<AnalyticsBloc>().add(
             LoadDashboard(period: periodKey, storeId: storeId),
           );

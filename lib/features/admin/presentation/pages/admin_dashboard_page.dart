@@ -39,10 +39,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ).toIso8601String();
 
       // Get active store_id for data isolation
-      final storeState = context.read<StoreBloc>().state;
-      final storeId = storeState is StoresLoaded
-          ? storeState.selectedStore?.id
-          : null;
+      final storeId = context.read<StoreBloc>().currentStoreId;
 
       final params = <String, dynamic>{
         'start_date': startDate,

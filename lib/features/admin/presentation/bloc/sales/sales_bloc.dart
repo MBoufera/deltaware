@@ -230,7 +230,23 @@ class SalesBloc extends Bloc<SalesEvent, SalesState> {
       };
 
       final response = await _supabase.rpc('process_pos_sale', params: {'payload': payload});
-      emit(SalesSuccess(response, s.grandTotalTtc));
+      
+      final String saleId = response is Map ? response['sale_id'] as String : response.toString();
+      
+      if (event.amountPaid != null && event.amountPaid! > 0 && s.selectedClient != null) {
+        await _supabase.from('client_payments').insert({
+          'client_id': s.selectedClient!['id'],
+          'store_id': s.storeId,
+          'sale_id': saleId,
+          'amount': event.amountPaid,
+          'payment_method': 'cash',
+          'notes': 'POS Checkout Payment',
+        });
+        
+        await _supabase.from('sales').update({'amount_paid': event.amountPaid}).eq('id', saleId);
+      }
+
+      emit(SalesSuccess(response as Map<String, dynamic>, s.grandTotalTtc));
     } catch (e) {
       emit(SalesError(e.toString()));
       emit(s);

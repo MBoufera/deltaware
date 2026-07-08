@@ -1,0 +1,47 @@
+name: Build and Release Windows App
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop Support
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Windows Application
+        run: flutter build windows --release
+
+      - name: Install NSIS via Chocolatey
+        run: choco install nsis -y
+
+      - name: Compile Installer using NSIS
+        run: makensis windows/installer.nsi
+
+      - name: Create Release on Public Repository
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release create ${{ github.ref_name }} `
+            windows/AppSetup.exe `
+            --repo "OWNER/PUBLIC-REPO" `
+            --title "Release ${{ github.ref_name }}" `
+            --notes "Automated release of version ${{ github.ref_name }} for Windows."
