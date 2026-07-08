@@ -806,7 +806,7 @@ class _PosPageState extends State<PosPage> {
       final res = await Supabase.instance.client
           .from('client_debts_view')
           .select('total_debt')
-          .eq('id', state.selectedClient!['id'])
+          .eq('client_id', state.selectedClient!['id'])
           .maybeSingle();
       if (res != null) {
         currentDebt = double.tryParse(res['total_debt'].toString()) ?? 0.0;
