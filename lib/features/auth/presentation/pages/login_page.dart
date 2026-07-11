@@ -13,8 +13,6 @@ import '../bloc/permissions_event.dart';
 import '../../../../features/store/presentation/bloc/store_bloc.dart';
 import '../../../../features/store/presentation/bloc/store_event.dart';
 
-enum UserRole { admin, staff, worker }
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -25,7 +23,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _selectedRole = UserRole.admin;
   bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -89,44 +86,61 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             );
           }
         },
-        child: isDesktop
-            ? _buildDesktopLayout(theme)
-            : Stack(
-                children: [
-                  // Dynamic Background
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.slate900, AppColors.slate800, AppColors.primaryDark],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+        child: Stack(
+          children: [
+            isDesktop
+                ? _buildDesktopLayout(theme)
+                : Stack(
+                    children: [
+                      // Dynamic Background
+                      Positioned.fill(
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.slate900, AppColors.slate800, AppColors.primaryDark],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  // Background blur effect
-                  Positioned.fill(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(color: Colors.black.withValues(alpha: 0.1)),
-                    ),
-                  ),
-                  
-                  // Main Content
-                  Center(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: _buildMobileLayout(theme),
+                      // Background blur effect
+                      Positioned.fill(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(color: Colors.black.withValues(alpha: 0.1)),
                         ),
                       ),
-                    ),
+                      
+                      // Main Content
+                      Center(
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: _buildMobileLayout(theme),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+            const Positioned(
+              left: 16,
+              bottom: 16,
+              child: Text(
+                'boufera mostafa 0675211822',
+                style: TextStyle(
+                  color: Colors.white30,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.5,
+                ),
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -238,10 +252,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         const SizedBox(height: 32),
         
-        // Role Selector
-        _buildRoleSelector(),
-        const SizedBox(height: 32),
-        
         // Form Fields
         _buildTextField(
           controller: _emailController,
@@ -269,49 +279,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         const SizedBox(height: 16),
         
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () async {
-                final msg = ScaffoldMessenger.of(context);
-                final email = _emailController.text.trim();
-                final password = _passwordController.text;
-                if (email.isNotEmpty && password.isNotEmpty) {
-                  try {
-                    await Supabase.instance.client.auth.signUp(
-                      email: email,
-                      password: password,
-                      data: {
-                        'role': _selectedRole.name,
-                        'full_name': email.split('@')[0],
-                      },
-                    );
-                    if (context.mounted) {
-                      msg.showSnackBar(
-                        const SnackBar(content: Text('Account created! You can now sign in.'), backgroundColor: Colors.green),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      msg.showSnackBar(
-                        SnackBar(content: Text('Sign up error: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                } else {
-                  msg.showSnackBar(
-                    const SnackBar(content: Text('Please enter email and password to register'), backgroundColor: Colors.orange),
-                  );
-                }
-              },
-              child: Text('auth.register'.tr(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: Text('auth.forgot_password'.tr(), style: const TextStyle(color: AppColors.primary)),
-            ),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () {},
+            child: Text('auth.forgot_password'.tr(), style: const TextStyle(color: AppColors.primary)),
+          ),
         ),
         const SizedBox(height: 24),
         
@@ -345,75 +318,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           },
         ),
       ],
-    );
-  }
-
-  Widget _buildRoleSelector() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          _buildRoleTab('auth.admin'.tr(), UserRole.admin, Icons.admin_panel_settings),
-          const SizedBox(width: 8),
-          _buildRoleTab('auth.staff'.tr(), UserRole.staff, Icons.manage_accounts),
-          const SizedBox(width: 8),
-          _buildRoleTab('auth.worker'.tr(), UserRole.worker, Icons.person),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoleTab(String title, UserRole role, IconData icon) {
-    final isSelected = _selectedRole == role;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedRole = role;
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : [],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected ? AppColors.primary : Colors.grey.shade500,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.primary : Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

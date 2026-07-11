@@ -146,79 +146,104 @@ class _SuppliersPageState extends State<SuppliersPage> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: SingleChildScrollView(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowColor: MaterialStateProperty.all(const Color(0xFFF8FAFC)),
-                                columns: const [
-                                  DataColumn(label: Text('Supplier Name', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                  DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                  DataColumn(label: Text('Total Purchases', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                  DataColumn(label: Text('Total Paid', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                  DataColumn(label: Text('Debt Remaining', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                  DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
-                                ],
-                                rows: filteredSuppliers.map((supplier) {
-                                  final totalPurchases = double.tryParse(supplier['total_purchases'].toString()) ?? 0;
-                                  final totalPaid = double.tryParse(supplier['total_paid'].toString()) ?? 0;
-                                  final totalDebt = double.tryParse(supplier['total_debt'].toString()) ?? 0;
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Stack(
+                                children: [
+                                  SingleChildScrollView(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                        child: DataTable(
+                                          headingRowColor: MaterialStateProperty.all(const Color(0xFFF8FAFC)),
+                                          columns: const [
+                                            DataColumn(label: Text('Supplier Name', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                            DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                            DataColumn(label: Text('Total Purchases', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                            DataColumn(label: Text('Total Paid', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                            DataColumn(label: Text('Debt Remaining', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+                                          ],
+                                          rows: filteredSuppliers.map((supplier) {
+                                            final totalPurchases = double.tryParse(supplier['total_purchases'].toString()) ?? 0;
+                                            final totalPaid = double.tryParse(supplier['total_paid'].toString()) ?? 0;
+                                            final totalDebt = double.tryParse(supplier['total_debt'].toString()) ?? 0;
 
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(Text(supplier['name'], style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B)))),
-                                      DataCell(Text(supplier['phone'] ?? '-', style: TextStyle(color: Colors.grey.shade600))),
-                                      DataCell(Text('${totalPurchases.toStringAsFixed(2)} DZD', style: const TextStyle(color: Color(0xFF1E293B)))),
-                                      DataCell(Text('${totalPaid.toStringAsFixed(2)} DZD', style: const TextStyle(color: Color(0xFF047857)))),
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: totalDebt > 0 ? Colors.red.shade50 : Colors.green.shade50,
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            '${totalDebt.toStringAsFixed(2)} DZD',
-                                            style: TextStyle(
-                                              color: totalDebt > 0 ? Colors.red.shade700 : Colors.green.shade700,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(Text(supplier['name'], style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B)))),
+                                                DataCell(Text(supplier['phone'] ?? '-', style: TextStyle(color: Colors.grey.shade600))),
+                                                DataCell(Text('${totalPurchases.toStringAsFixed(2)} DZD', style: const TextStyle(color: Color(0xFF1E293B)))),
+                                                DataCell(Text('${totalPaid.toStringAsFixed(2)} DZD', style: const TextStyle(color: Color(0xFF047857)))),
+                                                DataCell(
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                    decoration: BoxDecoration(
+                                                      color: totalDebt > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: Text(
+                                                      '${totalDebt.toStringAsFixed(2)} DZD',
+                                                      style: TextStyle(
+                                                        color: totalDebt > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(Icons.edit, color: Color(0xFF203A43), size: 20),
+                                                        onPressed: () => _showSupplierDialog(supplier),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      ElevatedButton.icon(
+                                                        onPressed: () {
+                                                          context.push(
+                                                            '/dashboard/supplier_fiche_tier', 
+                                                            extra: supplier,
+                                                          );
+                                                        },
+                                                        icon: const Icon(Icons.receipt_long, size: 16),
+                                                        label: const Text('Fiche Tier'),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: const Color(0xFF203A43),
+                                                          foregroundColor: Colors.white,
+                                                          elevation: 0,
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                ),
+                                              ],
+                                            );
+                                          }).toList(),
                                         ),
                                       ),
-                                      DataCell(
-                                        Row(
+                                    ),
+                                  ),
+                                  if (filteredSuppliers.isEmpty)
+                                    Positioned.fill(
+                                      top: 56,
+                                      child: Center(
+                                        child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit, color: Color(0xFF203A43), size: 20),
-                                              onPressed: () => _showSupplierDialog(supplier),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            ElevatedButton.icon(
-                                              onPressed: () {
-                                                context.push(
-                                                  '/dashboard/supplier_fiche_tier', 
-                                                  extra: supplier,
-                                                );
-                                              },
-                                              icon: const Icon(Icons.receipt_long, size: 16),
-                                              label: const Text('Fiche Tier'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF203A43),
-                                                foregroundColor: Colors.white,
-                                                elevation: 0,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                            ),
+                                            Icon(Icons.local_shipping_outlined, size: 64, color: Colors.grey.shade300),
+                                            const SizedBox(height: 16),
+                                            Text('No suppliers found', style: TextStyle(color: Colors.grey.shade500, fontSize: 16, fontWeight: FontWeight.bold)),
                                           ],
-                                        )
+                                        ),
                                       ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ),
+                                    ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
